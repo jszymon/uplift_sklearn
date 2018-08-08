@@ -10,6 +10,9 @@ for details.
 import logging
 from os.path import dirname, exists, join
 from os import remove
+import csv
+
+import numpy as np
 
 from sklearn.datasets.base import get_data_home
 from sklearn.datasets.base import _fetch_remote
@@ -30,7 +33,8 @@ logger = logging.getLogger(__name__)
 
 
 def fetch_Hillstrom(data_home=None, download_if_missing=True,
-                    random_state=None, shuffle=False, return_X_y=False):
+                    random_state=None, shuffle=False,
+                    categ_as_strings=False, return_X_y=False):
     """Load the Hillstrom dataset (uplift classification and regression).
 
     Download it if necessary.
@@ -51,6 +55,9 @@ def fetch_Hillstrom(data_home=None, download_if_missing=True,
 
     shuffle : bool, default=False
         Whether to shuffle dataset.
+
+    categ_as_strings : bool, default=False
+        Whether to return categorical variables as strings.
 
     return_X_y : boolean, default=False.
         If True, returns ``(data.data, data.target)`` instead of a Bunch
@@ -83,15 +90,57 @@ def fetch_Hillstrom(data_home=None, download_if_missing=True,
             makedirs(Hillstrom_dir)
         logger.info("Downloading %s" % ARCHIVE.url)
 
-        archive_path = _fetch_remote(ARCHIVE, dirname=Hillstrom_dir)
+        #archive_path = _fetch_remote(ARCHIVE, dirname=Hillstrom_dir)
+        #print(archive_path)
+        archive_path = "/home/szymon/scikit_learn_data/usklearn_Hillstrom/Hillstrom.csv"
         # read the data
         Xy = []
-        with open(archive_path) as file_:
-            for line in file_.readlines():
-                Xy.append(line.replace('\n', '').split(','))
+        with open(archive_path) as csvfile:
+            header = next(csvfile).strip().split(',')
+            csvreader = csv.reader(csvfile, delimiter=',', quotechar='"')
+            for record in csvreader:
+                Xy.append(record)
+                assert len(record) == 12, record
         # delete archive
-        remove(archive_path)
-        # decode variables
+        #remove(archive_path)
+        # feature names
+        feature_names = header[:-4]
+        target_names = header[-3:]
+        print(feature_names, target_names)
+        # decode treatment group
+        group = [r[8] for r in Xy]
+        if categ_as_strings:
+            group = np.asarray(group, dtype="S13")
+        else:
+            group = [['No E-Mail', 'Womens E-Mail', 'Mens E-Mail'].index(g) for g in group]
+            group = np.asarray(group, dtype=int)
+        print(group)
+        # decode targets
+        visit = np.asarray([int(r[9]) for r in Xy], dtype=int)
+        conversion = np.asarray([int(r[10]) for r in Xy], dtype=int)
+        spend = np.asarray([float(r[11]) for r in Xy], dtype=float)
+        print(spend.sum())
+        # decode features
+        Xy = [r[:-4] for r in Xy]
+        if categ_as_strings:
+            dt = [('recency', int),
+                  ('history_segment', 'S'),
+                  ('history', float),
+                  ('mens', bool),
+                  ('womens', bool),
+                  ('zip_code', 'S'),
+                  ('newbie', bool),
+                  ('channel', 'S'),]
+        else:
+            dt = [('recency', int),
+                  ('history_segment', int),
+                  ('history', float),
+                  ('mens', bool),
+                  ('womens', bool),
+                  ('zip_code', int),
+                  ('newbie', bool),
+                  ('channel', int),]
+        Xy = np.asarray(Xy, dtype=np.dtype(dt))
         return Xy
         X = Xy[:, :-1]
         y = Xy[:, -1].astype(np.int32)
@@ -112,6 +161,7 @@ def fetch_Hillstrom(data_home=None, download_if_missing=True,
         rng = check_random_state(random_state)
         rng.shuffle(ind)
         X = X[ind]
+        group = group[ind]
         y = y[ind]
 
     module_path = dirname(__file__)
