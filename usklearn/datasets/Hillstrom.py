@@ -18,6 +18,7 @@ from sklearn.datasets.base import get_data_home
 from sklearn.datasets.base import _fetch_remote
 from sklearn.datasets.base import RemoteFileMetadata
 from sklearn.utils import Bunch
+from sklearn.externals import joblib
 from sklearn.utils import check_random_state
 from sklearn.utils.fixes import makedirs
 
@@ -80,19 +81,38 @@ def fetch_Hillstrom(data_home=None, download_if_missing=True,
     (data, target) : tuple if ``return_X_y`` is True"""
 
     data_home = get_data_home(data_home=data_home)
-    Hillstrom_dir = join(data_home, "usklearn_Hillstrom")
-    samples_path = join(Hillstrom_dir, "samples")
-    targets_path = join(Hillstrom_dir, "targets")
+    Hillstrom_dir = join(data_home, "uplift_sklearn", "Hillstrom")
+    if categ_as_strings:
+        samples_path = join(Hillstrom_dir, "samples_str")
+        targets_path = join(Hillstrom_dir, "targets_str")
+    else:
+        samples_path = join(Hillstrom_dir, "samples")
+        targets_path = join(Hillstrom_dir, "targets")
     available = exists(samples_path)
+
+    # dictionaries
+    feature_names = ['recency', 'history_segment', 'history', 'mens', 'womens',
+                     'zip_code', 'newbie','channel']
+    target_names = ["visit", "conversion", "spend"]
+    group_values = ['No E-Mail', 'Mens E-Mail', 'Womens E-Mail']
+    history_segment_values = ['1) $0 - $100', '2) $100 - $200',
+                              '3) $200 - $350', '4) $350 - $500',
+                              '5) $500 - $750', '6) $750 - $1,000',
+                              '7) $1,000 +']
+    zip_code_values = ['Rural', 'Surburban', 'Urban']
+    channel_values = ['Phone', 'Web', 'Multichannel']
+    categ_values = {"history_segment": history_segment_values,
+                    "zip_code": zip_code_values,
+                    "channel": channel_values,}
 
     if download_if_missing and not available:
         if not exists(Hillstrom_dir):
             makedirs(Hillstrom_dir)
         logger.info("Downloading %s" % ARCHIVE.url)
 
-        #archive_path = _fetch_remote(ARCHIVE, dirname=Hillstrom_dir)
+        archive_path = _fetch_remote(ARCHIVE, dirname=Hillstrom_dir)
         #print(archive_path)
-        archive_path = "/home/szymon/scikit_learn_data/usklearn_Hillstrom/Hillstrom.csv"
+        #archive_path = "/home/szymon/scikit_learn_data/usklearn_Hillstrom/Hillstrom.csv"
         # read the data
         Xy = []
         with open(archive_path) as csvfile:
@@ -102,35 +122,28 @@ def fetch_Hillstrom(data_home=None, download_if_missing=True,
                 Xy.append(record)
                 assert len(record) == 12, record
         # delete archive
-        #remove(archive_path)
-        # feature names
-        feature_names = header[:-4]
-        target_names = header[-3:]
-        print(feature_names, target_names)
+        remove(archive_path)
         # decode treatment group
         group = [r[8] for r in Xy]
         if categ_as_strings:
-            group = np.asarray(group, dtype="S13")
+            group = np.asarray(group, dtype="U13")
         else:
-            group = [['No E-Mail', 'Womens E-Mail', 'Mens E-Mail'].index(g) for g in group]
-            group = np.asarray(group, dtype=int)
-        print(group)
+            group = [group_values.index(g) for g in group]
+            group = np.asarray(group, dtype=np.int32)
         # decode targets
-        visit = np.asarray([int(r[9]) for r in Xy], dtype=int)
-        conversion = np.asarray([int(r[10]) for r in Xy], dtype=int)
-        spend = np.asarray([float(r[11]) for r in Xy], dtype=float)
-        print(spend.sum())
+        y_visit = np.asarray([int(r[9]) for r in Xy], dtype=np.int32)
+        y_conversion = np.asarray([int(r[10]) for r in Xy], dtype=np.int32)
+        y_spend = np.asarray([float(r[11]) for r in Xy], dtype=float)
         # decode features
-        Xy = [r[:-4] for r in Xy]
         if categ_as_strings:
             dt = [('recency', int),
-                  ('history_segment', 'S'),
+                  ('history_segment', 'U16'),
                   ('history', float),
                   ('mens', bool),
                   ('womens', bool),
-                  ('zip_code', 'S'),
+                  ('zip_code', 'U9'),
                   ('newbie', bool),
-                  ('channel', 'S'),]
+                  ('channel', 'U12'),]
         else:
             dt = [('recency', int),
                   ('history_segment', int),
@@ -140,21 +153,23 @@ def fetch_Hillstrom(data_home=None, download_if_missing=True,
                   ('zip_code', int),
                   ('newbie', bool),
                   ('channel', int),]
-        Xy = np.asarray(Xy, dtype=np.dtype(dt))
-        return Xy
-        X = Xy[:, :-1]
-        y = Xy[:, -1].astype(np.int32)
+            for r in Xy:
+                r[1] = history_segment_values.index(r[1])
+                r[5] = zip_code_values.index(r[5])
+                r[7] = channel_values.index(r[7])
+        X = [tuple(r[:-4]) for r in Xy]
+        X = np.asarray(X, dtype=np.dtype(dt))
 
         joblib.dump(X, samples_path, compress=9)
-        joblib.dump(y, targets_path, compress=9)
+        joblib.dump((y_visit, y_conversion, y_spend), targets_path, compress=9)
 
     elif not available and not download_if_missing:
         raise IOError("Data not found and `download_if_missing` is False")
     try:
-        X, y
+        X, y_visit, y_conversion, y_spend
     except NameError:
         X = joblib.load(samples_path)
-        y = joblib.load(targets_path)
+        y_visit, y_conversion, y_spend = joblib.load(targets_path)
 
     if shuffle:
         ind = np.arange(X.shape[0])
@@ -162,13 +177,19 @@ def fetch_Hillstrom(data_home=None, download_if_missing=True,
         rng.shuffle(ind)
         X = X[ind]
         group = group[ind]
-        y = y[ind]
+        y_visit = y_visit[ind]
+        y_conversion = y_conversion[ind]
+        y_spend = y_spend[ind]
 
-    module_path = dirname(__file__)
-    with open(join(module_path, 'descr', 'covtype.rst')) as rst_file:
-        fdescr = rst_file.read()
+    #module_path = dirname(__file__)
+    #with open(join(module_path, 'descr', 'Hillstrom.rst')) as rst_file:
+    #    fdescr = rst_file.read()
 
     if return_X_y:
-        return X, y
+        return X, y_visit, y_conversion, y_spend
 
-    return Bunch(data=X, target=y, DESCR=fdescr)
+    return Bunch(data=X, target_visit=y_visit, target_conversion=y_conversion,
+                 target_spend=y_spend, categ_values=categ_values,
+                 group_values=group_values,
+                 feature_names=feature_names, target_names=target_names,
+                 DESCR=__doc__)
