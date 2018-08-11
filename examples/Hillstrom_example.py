@@ -9,6 +9,7 @@ Build uplift classification and regression models on Hillstrom data.
 import numpy as np
 
 from usklearn.datasets import fetch_Hillstrom
+from usklearn.multi_model import MultimodelUpliftRegressor
 
 def encode_features(D):
     """Convert features to float matrix.
@@ -28,4 +29,11 @@ def encode_features(D):
 
 D = fetch_Hillstrom()
 X = encode_features(D)
-print(X)
+y = D.target_spend
+trt = D.treatment
+
+r = MultimodelUpliftRegressor()
+r.fit(X, y, trt)
+print(r)
+print(r.predict(X))
+print(r.predict_action(X))

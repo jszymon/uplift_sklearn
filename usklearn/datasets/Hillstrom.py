@@ -85,16 +85,18 @@ def fetch_Hillstrom(data_home=None, download_if_missing=True,
     if categ_as_strings:
         samples_path = join(Hillstrom_dir, "samples_str")
         targets_path = join(Hillstrom_dir, "targets_str")
+        treatment_path = join(Hillstrom_dir, "treatment_str")
     else:
         samples_path = join(Hillstrom_dir, "samples")
         targets_path = join(Hillstrom_dir, "targets")
+        treatment_path = join(Hillstrom_dir, "treatment")
     available = exists(samples_path)
 
     # dictionaries
     feature_names = ['recency', 'history_segment', 'history', 'mens', 'womens',
                      'zip_code', 'newbie','channel']
     target_names = ["visit", "conversion", "spend"]
-    group_values = ['No E-Mail', 'Mens E-Mail', 'Womens E-Mail']
+    treatment_values = ['No E-Mail', 'Mens E-Mail', 'Womens E-Mail']
     history_segment_values = ['1) $0 - $100', '2) $100 - $200',
                               '3) $200 - $350', '4) $350 - $500',
                               '5) $500 - $750', '6) $750 - $1,000',
@@ -124,12 +126,12 @@ def fetch_Hillstrom(data_home=None, download_if_missing=True,
         # delete archive
         remove(archive_path)
         # decode treatment group
-        group = [r[8] for r in Xy]
+        trt = [r[8] for r in Xy]
         if categ_as_strings:
-            group = np.asarray(group, dtype="U13")
+            trt = np.asarray(trt, dtype="U13")
         else:
-            group = [group_values.index(g) for g in group]
-            group = np.asarray(group, dtype=np.int32)
+            trt = [treatment_values.index(t) for t in trt]
+            trt = np.asarray(trt, dtype=np.int32)
         # decode targets
         y_visit = np.asarray([int(r[9]) for r in Xy], dtype=np.int32)
         y_conversion = np.asarray([int(r[10]) for r in Xy], dtype=np.int32)
@@ -162,21 +164,23 @@ def fetch_Hillstrom(data_home=None, download_if_missing=True,
 
         joblib.dump(X, samples_path, compress=9)
         joblib.dump((y_visit, y_conversion, y_spend), targets_path, compress=9)
+        joblib.dump(trt, treatment_path, compress=9)
 
     elif not available and not download_if_missing:
         raise IOError("Data not found and `download_if_missing` is False")
     try:
-        X, y_visit, y_conversion, y_spend
+        X, y_visit, y_conversion, y_spend, trt
     except NameError:
         X = joblib.load(samples_path)
         y_visit, y_conversion, y_spend = joblib.load(targets_path)
+        trt = joblib.load(treatment_path)
 
     if shuffle:
         ind = np.arange(X.shape[0])
         rng = check_random_state(random_state)
         rng.shuffle(ind)
         X = X[ind]
-        group = group[ind]
+        trt = trt[ind]
         y_visit = y_visit[ind]
         y_conversion = y_conversion[ind]
         y_spend = y_spend[ind]
@@ -186,10 +190,10 @@ def fetch_Hillstrom(data_home=None, download_if_missing=True,
     #    fdescr = rst_file.read()
 
     if return_X_y:
-        return X, y_visit, y_conversion, y_spend
+        return X, y_visit, y_conversion, y_spend, trt
 
     return Bunch(data=X, target_visit=y_visit, target_conversion=y_conversion,
-                 target_spend=y_spend, categ_values=categ_values,
-                 group_values=group_values,
+                 target_spend=y_spend, treatment=trt,
+                 categ_values=categ_values, treatment_values=treatment_values,
                  feature_names=feature_names, target_names=target_names,
                  DESCR=__doc__)
