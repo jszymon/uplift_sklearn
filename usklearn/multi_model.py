@@ -21,9 +21,10 @@ class MultimodelUpliftRegressor(BaseEstimator, UpliftRegressorMixin):
         if (trt < 0).any():
             raise ValueError("Treatment values must be >= 0")
         # TODO: process_trt
-        self.n_trt = max(trt)
+        self.n_trt_ = max(trt)
+        self.n_models_ = self.n_trt_ + 1
         self.models_ = []
-        for i in range(self.n_trt):
+        for i in range(self.n_models_):
             mi = clone(self.base_model)
             ind = (trt==i)
             Xi = X[ind]
@@ -33,9 +34,9 @@ class MultimodelUpliftRegressor(BaseEstimator, UpliftRegressorMixin):
         return self
     def predict(self, X):
         y_control = self.models_[0].predict(X)
-        cols = [self.models_[i].predict(X) - y_control
-                    for i in range(1, self.n_trt)]
-        if self.n_trt == 1:
+        cols = [self.models_[i+1].predict(X) - y_control
+                    for i in range(self.n_trt_)]
+        if self.n_trt_ == 1:
             y = cols[0]
         else:
             y = np.column_stack(cols)
@@ -43,11 +44,10 @@ class MultimodelUpliftRegressor(BaseEstimator, UpliftRegressorMixin):
     def predict_action(self, X):
         """Predict most beneficial action."""
         y = self.predict(X)
-        if self.n_trt == 1:
+        if self.n_trt_ == 1:
             a = (y > 0)*1
         else:
             a = np.argmax(y, axis=1) + 1
             best_y = np.max(y, axis=1)
             a[best_y <= 0] == 0
         return a
-

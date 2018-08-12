@@ -35,5 +35,11 @@ trt = D.treatment
 r = MultimodelUpliftRegressor()
 r.fit(X, y, trt)
 print(r)
-print(r.predict(X))
-print(r.predict_action(X))
+print(r.score(X, y, trt))
+
+# merge treatments
+trt[trt==2] = 1
+r.fit(X, y, trt)
+print(r)
+print(r.score(X, y, trt))
+
