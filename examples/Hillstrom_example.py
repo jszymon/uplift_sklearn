@@ -40,7 +40,7 @@ print(r)
 print("training SATE:", r.score(X, y, trt))
 print("training SATT:", e_satt(y, r.predict(X), trt, n_trt=2))
 print("crossval SATE:", cross_val_score(r, X, y, trt, n_trt=2, cv=10))
-#print("crossval SATT:", cross_validate(r, X, y, trt, n_trt=2, cv=10, scoring="e_satt"))
+print("crossval SATT:", cross_validate(r, X, y, trt, n_trt=2, cv=10, scoring="e_sate"))
 
 # merge treatments
 trt[trt==2] = 1
