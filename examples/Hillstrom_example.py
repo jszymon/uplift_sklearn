@@ -10,6 +10,7 @@ import numpy as np
 
 from usklearn.datasets import fetch_Hillstrom
 from usklearn.multi_model import MultimodelUpliftRegressor
+from usklearn.metrics import e_sate, e_satt
 
 def encode_features(D):
     """Convert features to float matrix.
@@ -35,11 +36,13 @@ trt = D.treatment
 r = MultimodelUpliftRegressor()
 r.fit(X, y, trt)
 print(r)
-print(r.score(X, y, trt))
+print("training SATE:", r.score(X, y, trt))
+print("training SATT:", e_satt(y, r.predict(X), trt, n_trt=2))
 
 # merge treatments
 trt[trt==2] = 1
 r.fit(X, y, trt)
 print(r)
-print(r.score(X, y, trt))
+print("training SATE:", r.score(X, y, trt))
+print("training SATT:", e_satt(y, r.predict(X), trt))
 

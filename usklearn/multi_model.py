@@ -11,7 +11,7 @@ from .base import UpliftRegressorMixin
 class MultimodelUpliftRegressor(BaseEstimator, UpliftRegressorMixin):
     def __init__(self, base_model=LinearRegression()):
         self.base_model = base_model
-    def fit(self, X, y, trt):
+    def fit(self, X, y, trt, n_trt=None):
         # TODO: check_X_y_trt
         X, y = check_X_y(X, y, accept_sparse="csr")
         trt = column_or_1d(trt)
@@ -21,7 +21,11 @@ class MultimodelUpliftRegressor(BaseEstimator, UpliftRegressorMixin):
         if (trt < 0).any():
             raise ValueError("Treatment values must be >= 0")
         # TODO: process_trt
-        self.n_trt_ = max(trt)
+        if n_trt is not None:
+            self.n_trt_ = n_trt
+            assert max(trt) <= self.n_trt_
+        else:
+            self.n_trt_ = max(trt)
         self.n_models_ = self.n_trt_ + 1
         self.models_ = []
         for i in range(self.n_models_):

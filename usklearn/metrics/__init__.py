@@ -1,1 +1,1 @@
-from .regression import e_sate
+from .regression import e_sate, e_satt
