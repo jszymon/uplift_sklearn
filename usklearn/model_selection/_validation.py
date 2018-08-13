@@ -17,9 +17,6 @@ functions to validate the model.
 #         Raghav RV <rvraghav93@gmail.com>
 # License: BSD 3 clause
 
-from __future__ import print_function
-from __future__ import division
-
 import warnings
 import numbers
 import time
@@ -39,12 +36,11 @@ from sklearn.exceptions import FitFailedWarning
 from sklearn.model_selection._split import check_cv
 from sklearn.preprocessing import LabelEncoder
 
-
 __all__ = ['cross_validate', 'cross_val_score', 'cross_val_predict',
            'permutation_test_score', 'learning_curve', 'validation_curve']
 
 
-def cross_validate(estimator, X, y, trt, groups=None, scoring=None, cv=None,
+def cross_validate(estimator, X, y, trt, n_trt=None, groups=None, scoring=None, cv=None,
                    n_jobs=1, verbose=0, fit_params=None,
                    pre_dispatch='2*n_jobs', return_train_score="warn"):
     """Evaluate metric(s) by cross-validation and also record fit/score times.
@@ -199,7 +195,16 @@ def cross_validate(estimator, X, y, trt, groups=None, scoring=None, cv=None,
     """
     X, y, trt, groups = indexable(X, y, trt, groups)
 
-    cv = check_cv(cv, y, classifier=is_classifier(estimator))
+    if n_trt is None:
+        n_trt = np.max(trt)
+    # by default, always stratify on treatment and class if available
+    if is_classifier(estimator):
+        le = LabelEncoder()
+        y_stratify = le.fit_transform(y)
+        y_stratify = y_stratify * n_trt + trt
+    else:
+        y_stratify = trt
+    cv = check_cv(cv, y_stratify, classifier=is_classifier(estimator))
     scorers, _ = _check_multimetric_scoring(estimator, scoring=scoring)
 
     # We clone the estimator to make sure that all the folds are
@@ -208,10 +213,11 @@ def cross_validate(estimator, X, y, trt, groups=None, scoring=None, cv=None,
                         pre_dispatch=pre_dispatch)
     scores = parallel(
         delayed(_fit_and_score)(
-            clone(estimator), X, y, scorers, train, test, verbose, None,
+            clone(estimator), X, y, trt, n_trt, scorers,
+            train, test, verbose, None,
             fit_params, return_train_score=return_train_score,
             return_times=True)
-        for train, test in cv.split(X, y, groups))
+        for train, test in cv.split(X, y_stratify, groups))
 
     if return_train_score:
         train_scores, test_scores, fit_times, score_times = zip(*scores)
@@ -242,7 +248,7 @@ def cross_validate(estimator, X, y, trt, groups=None, scoring=None, cv=None,
     return ret
 
 
-def cross_val_score(estimator, X, y=None, groups=None, scoring=None, cv=None,
+def cross_val_score(estimator, X, y, trt, n_trt=None, groups=None, scoring=None, cv=None,
                     n_jobs=1, verbose=0, fit_params=None,
                     pre_dispatch='2*n_jobs'):
     """Evaluate a score by cross-validation
@@ -342,7 +348,8 @@ def cross_val_score(estimator, X, y=None, groups=None, scoring=None, cv=None,
     # To ensure multimetric format is not supported
     scorer = check_scoring(estimator, scoring=scoring)
 
-    cv_results = cross_validate(estimator=estimator, X=X, y=y, groups=groups,
+    cv_results = cross_validate(estimator=estimator, X=X, y=y, trt=trt,
+                                n_trt=n_trt, groups=groups,
                                 scoring={'score': scorer}, cv=cv,
                                 return_train_score=False,
                                 n_jobs=n_jobs, verbose=verbose,
@@ -351,7 +358,7 @@ def cross_val_score(estimator, X, y=None, groups=None, scoring=None, cv=None,
     return cv_results['test_score']
 
 
-def _fit_and_score(estimator, X, y, scorer, train, test, verbose,
+def _fit_and_score(estimator, X, y, trt, n_trt, scorer, train, test, verbose,
                    parameters, fit_params, return_train_score=False,
                    return_parameters=False, return_n_test_samples=False,
                    return_times=False, error_score='raise'):
@@ -455,6 +462,8 @@ def _fit_and_score(estimator, X, y, scorer, train, test, verbose,
 
     X_train, y_train = _safe_split(estimator, X, y, train)
     X_test, y_test = _safe_split(estimator, X, y, test, train)
+    trt_train = safe_indexing(trt, train)
+    trt_test = safe_indexing(trt, test)
 
     is_multimetric = not callable(scorer)
     n_scorers = len(scorer.keys()) if is_multimetric else 1
@@ -463,7 +472,7 @@ def _fit_and_score(estimator, X, y, scorer, train, test, verbose,
         if y_train is None:
             estimator.fit(X_train, **fit_params)
         else:
-            estimator.fit(X_train, y_train, **fit_params)
+            estimator.fit(X_train, y_train, trt_train, n_trt=n_trt, **fit_params)
 
     except Exception as e:
         # Note fit time as time until error
@@ -493,11 +502,11 @@ def _fit_and_score(estimator, X, y, scorer, train, test, verbose,
     else:
         fit_time = time.time() - start_time
         # _score will return dict if is_multimetric is True
-        test_scores = _score(estimator, X_test, y_test, scorer, is_multimetric)
+        test_scores = _score(estimator, X_test, y_test, trt_test, n_trt, scorer, is_multimetric)
         score_time = time.time() - start_time - fit_time
         if return_train_score:
-            train_scores = _score(estimator, X_train, y_train, scorer,
-                                  is_multimetric)
+            train_scores = _score(estimator, X_train, y_train, trt_test, n_trt,
+                                  scorer, is_multimetric)
 
     if verbose > 2:
         if is_multimetric:
@@ -521,19 +530,19 @@ def _fit_and_score(estimator, X, y, scorer, train, test, verbose,
     return ret
 
 
-def _score(estimator, X_test, y_test, scorer, is_multimetric=False):
+def _score(estimator, X_test, y_test, trt_test, n_trt, scorer, is_multimetric=False):
     """Compute the score(s) of an estimator on a given test set.
 
     Will return a single float if is_multimetric is False and a dict of floats,
     if is_multimetric is True
     """
     if is_multimetric:
-        return _multimetric_score(estimator, X_test, y_test, scorer)
+        return _multimetric_score(estimator, X_test, y_test, trt_test, n_trt, scorer)
     else:
         if y_test is None:
             score = scorer(estimator, X_test)
         else:
-            score = scorer(estimator, X_test, y_test)
+            score = scorer(estimator, X_test, y_test, trt_test, n_trt)
 
         if hasattr(score, 'item'):
             try:
@@ -550,7 +559,7 @@ def _score(estimator, X_test, y_test, scorer, is_multimetric=False):
     return score
 
 
-def _multimetric_score(estimator, X_test, y_test, scorers):
+def _multimetric_score(estimator, X_test, y_test, trt_test, n_trt, scorers):
     """Return a dict of score for multimetric scoring"""
     scores = {}
 
@@ -558,7 +567,7 @@ def _multimetric_score(estimator, X_test, y_test, scorers):
         if y_test is None:
             score = scorer(estimator, X_test)
         else:
-            score = scorer(estimator, X_test, y_test)
+            score = scorer(estimator, X_test, y_test, trt_test, n_trt)
 
         if hasattr(score, 'item'):
             try:
@@ -574,6 +583,9 @@ def _multimetric_score(estimator, X_test, y_test, scorers):
                              "instead. (scorer=%s)"
                              % (str(score), type(score), name))
     return scores
+
+
+# TODO: fix functions below
 
 
 def cross_val_predict(estimator, X, y=None, groups=None, cv=None, n_jobs=1,

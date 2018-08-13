@@ -23,9 +23,9 @@ class MultimodelUpliftRegressor(BaseEstimator, UpliftRegressorMixin):
         # TODO: process_trt
         if n_trt is not None:
             self.n_trt_ = n_trt
-            assert max(trt) <= self.n_trt_
+            assert np.max(trt) <= self.n_trt_
         else:
-            self.n_trt_ = max(trt)
+            self.n_trt_ = np.max(trt)
         self.n_models_ = self.n_trt_ + 1
         self.models_ = []
         for i in range(self.n_models_):
