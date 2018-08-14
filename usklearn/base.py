@@ -9,7 +9,7 @@ class UpliftRegressorMixin(object):
     _uplift_model = True
 
     def score(self, X, y, trt, sample_weight=None):
-        return e_sate(y, self.predict(X), trt, n_trt=self.n_trt_)
+        return -e_sate(y, self.predict(X), trt, n_trt=self.n_trt_)
 
 def is_uplift(estimator):
     """Returns True if the given estimator is an uplift model.

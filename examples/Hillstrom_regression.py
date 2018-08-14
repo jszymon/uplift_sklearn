@@ -8,10 +8,13 @@ Build uplift classification and regression models on Hillstrom data.
 
 import numpy as np
 
+from sklearn.linear_model import Ridge
+
 from usklearn.datasets import fetch_Hillstrom
 from usklearn.multi_model import MultimodelUpliftRegressor
 from usklearn.metrics import e_sate, e_satt
 from usklearn.model_selection import cross_validate, cross_val_score
+from usklearn.model_selection import GridSearchCV
 
 def encode_features(D):
     """Convert features to float matrix.
@@ -56,3 +59,19 @@ print("crossval SATE:", cross_validate(r, X, y, trt,
                                        n_trt=1, cv=10,
                                        scoring="e_sate")["test_score"])
 
+
+# tuned ridge regression
+rridge = MultimodelUpliftRegressor(base_estimator=Ridge())
+rr = GridSearchCV(rridge, {"base_estimator__alpha":[0,1e-3,1e-2,1e-1,1,1e1,1e2,1e3]})
+rr.fit(X, y, trt)
+print("\n\n")
+print(rr)
+print("best alpha:", rr.best_params_)
+print("training SATE:", rr.score(X, y, trt))
+print("training SATT:", e_satt(y, rr.predict(X), trt))
+print("crossval SATE:", cross_val_score(rr, X, y, trt, n_trt=1, cv=10))
+#print("crossval SATE:", cross_validate(rr, X, y, trt,
+#                                       n_trt=1, cv=10,
+#                                       scoring="e_sate")["test_score"])
+
+#TODO: tune T/C ridge separately

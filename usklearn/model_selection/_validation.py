@@ -205,7 +205,8 @@ def cross_validate(estimator, X, y, trt, n_trt=None, groups=None, scoring=None, 
         y_stratify = y_stratify * n_trt + trt
     else:
         y_stratify = trt
-    cv = check_cv(cv, y_stratify, classifier=is_classifier(estimator))
+    # below, classifier=True ensures stratification
+    cv = check_cv(cv, y_stratify, classifier=True)
     scorers, _ = _check_multimetric_scoring(estimator, scoring=scoring)
 
     # We clone the estimator to make sure that all the folds are

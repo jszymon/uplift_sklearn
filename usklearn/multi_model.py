@@ -9,8 +9,8 @@ from sklearn.linear_model import LinearRegression
 from .base import UpliftRegressorMixin
 
 class MultimodelUpliftRegressor(BaseEstimator, UpliftRegressorMixin):
-    def __init__(self, base_model=LinearRegression()):
-        self.base_model = base_model
+    def __init__(self, base_estimator=LinearRegression()):
+        self.base_estimator = base_estimator
     def fit(self, X, y, trt, n_trt=None):
         # TODO: check_X_y_trt
         X, y = check_X_y(X, y, accept_sparse="csr")
@@ -29,7 +29,7 @@ class MultimodelUpliftRegressor(BaseEstimator, UpliftRegressorMixin):
         self.n_models_ = self.n_trt_ + 1
         self.models_ = []
         for i in range(self.n_models_):
-            mi = clone(self.base_model)
+            mi = clone(self.base_estimator)
             ind = (trt==i)
             Xi = X[ind]
             yi = y[ind]
