@@ -35,6 +35,7 @@ from sklearn.metrics.scorer import check_scoring, _check_multimetric_scoring
 from sklearn.exceptions import FitFailedWarning
 from sklearn.model_selection._split import check_cv
 from sklearn.preprocessing import LabelEncoder
+from sklearn.model_selection._validation import _aggregate_score_dicts
 
 __all__ = ['cross_validate', 'cross_val_score', 'cross_val_predict',
            'permutation_test_score', 'learning_curve', 'validation_curve']
@@ -1336,31 +1337,3 @@ def validation_curve(estimator, X, y, param_name, param_range, groups=None,
 
     return out[0], out[1]
 
-
-def _aggregate_score_dicts(scores):
-    """Aggregate the list of dict to dict of np ndarray
-
-    The aggregated output of _fit_and_score will be a list of dict
-    of form [{'prec': 0.1, 'acc':1.0}, {'prec': 0.1, 'acc':1.0}, ...]
-    Convert it to a dict of array {'prec': np.array([0.1 ...]), ...}
-
-    Parameters
-    ----------
-
-    scores : list of dict
-        List of dicts of the scores for all scorers. This is a flat list,
-        assumed originally to be of row major order.
-
-    Example
-    -------
-
-    >>> scores = [{'a': 1, 'b':10}, {'a': 2, 'b':2}, {'a': 3, 'b':3},
-    ...           {'a': 10, 'b': 10}]                         # doctest: +SKIP
-    >>> _aggregate_score_dicts(scores)                        # doctest: +SKIP
-    {'a': array([1, 2, 3, 10]),
-     'b': array([10, 2, 3, 10])}
-    """
-    out = {}
-    for key in scores[0]:
-        out[key] = np.asarray([score[key] for score in scores])
-    return out
