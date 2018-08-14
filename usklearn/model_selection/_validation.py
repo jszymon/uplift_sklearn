@@ -505,7 +505,7 @@ def _fit_and_score(estimator, X, y, trt, n_trt, scorer, train, test, verbose,
         test_scores = _score(estimator, X_test, y_test, trt_test, n_trt, scorer, is_multimetric)
         score_time = time.time() - start_time - fit_time
         if return_train_score:
-            train_scores = _score(estimator, X_train, y_train, trt_test, n_trt,
+            train_scores = _score(estimator, X_train, y_train, trt_train, n_trt,
                                   scorer, is_multimetric)
 
     if verbose > 2:
