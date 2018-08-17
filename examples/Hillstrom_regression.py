@@ -12,6 +12,7 @@ from sklearn.linear_model import Ridge
 
 from usklearn.datasets import fetch_Hillstrom
 from usklearn.multi_model import MultimodelUpliftRegressor
+from usklearn.multi_model import MultimodelUpliftLinearRegressor
 from usklearn.metrics import e_sate, e_satt
 from usklearn.model_selection import cross_validate, cross_val_score
 from usklearn.model_selection import GridSearchCV
@@ -47,6 +48,14 @@ print("crossval SATE:", cross_validate(r, X, y, trt,
                                        n_trt=2, cv=10,
                                        scoring="e_sate")["test_score"])
 
+# linear regression uplift model with coef_ and intercept_
+rlin = MultimodelUpliftLinearRegressor()
+rlin.fit(X, y, trt)
+print("\n\n")
+print(rlin, rlin.coef_.shape, rlin.intercept_.shape)
+print("training SATE:", r.score(X, y, trt))
+print("training SATT:", e_satt(y, rlin.predict(X), trt, n_trt=2))
+
 # merge treatments
 trt[trt==2] = 1
 r.fit(X, y, trt)
@@ -59,6 +68,12 @@ print("crossval SATE:", cross_validate(r, X, y, trt,
                                        n_trt=1, cv=10,
                                        scoring="e_sate")["test_score"])
 
+
+rlin.fit(X, y, trt)
+print("\n\n")
+print(rlin, rlin.coef_.shape, rlin.intercept_.shape)
+print("training SATE:", r.score(X, y, trt))
+print("training SATT:", e_satt(y, rlin.predict(X), trt, n_trt=1))
 
 # tuned ridge regression
 rridge = MultimodelUpliftRegressor(base_estimator=Ridge())
@@ -75,3 +90,4 @@ print("crossval SATE:", cross_val_score(rr, X, y, trt, n_trt=1, cv=10))
 #                                       scoring="e_sate")["test_score"])
 
 #TODO: tune T/C ridge separately
+

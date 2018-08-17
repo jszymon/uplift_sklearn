@@ -5,6 +5,7 @@ import numpy as np
 from sklearn.base import BaseEstimator, clone
 from sklearn.utils import check_X_y, check_consistent_length, column_or_1d
 from sklearn.linear_model import LinearRegression
+from sklearn.linear_model.base import LinearModel
 
 from .base import UpliftRegressorMixin
 
@@ -55,3 +56,27 @@ class MultimodelUpliftRegressor(BaseEstimator, UpliftRegressorMixin):
             best_y = np.max(y, axis=1)
             a[best_y <= 0] == 0
         return a
+
+class MultimodelUpliftLinearRegressor(MultimodelUpliftRegressor, LinearModel):
+    def fit(self, *args, **kwargs):
+        super().fit(*args, **kwargs)
+        self._set_coef()
+        return self
+    def _set_coef(self):
+        if not hasattr(self.models_[0], "coef_"):
+            raise RuntimeError("Base estimator for multi-linear"
+                                   " model must set coef_ attribute")
+        c0 = self.models_[0].coef_
+        i0 = self.models_[0].intercept_
+        coef = np.empty((self.n_trt_, len(c0)))
+        intercept = np.empty(self.n_trt_)
+        for i in range(self.n_trt_):
+            ui = self.models_[i+1].coef_ - c0
+            ii = self.models_[i+1].intercept_ - i0
+            coef[i,:] = ui
+            intercept[i] = ii
+        if self.n_trt_ == 1:
+            coef = np.squeeze(coef)
+            intercept = np.squeeze(intercept)
+        self.coef_ = coef
+        self.intercept_ = intercept
