@@ -29,9 +29,11 @@ class MultimodelUpliftRegressor(BaseEstimator, UpliftRegressorMixin):
             self.n_trt_ = np.max(trt)
         self.n_models_ = self.n_trt_ + 1
         self.models_ = []
+        self.n_ = np.empty(self.n_models_, dtype=int)
         for i in range(self.n_models_):
             mi = clone(self.base_estimator)
             ind = (trt==i)
+            self.n_[i] = ind.sum()
             Xi = X[ind]
             yi = y[ind]
             mi.fit(Xi, yi)
