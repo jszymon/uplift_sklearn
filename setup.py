@@ -1,4 +1,4 @@
-﻿from setuptools import setup
+﻿from setuptools import setup, find_packages
 
 setup(name='usklearn',
       version='0.1',
@@ -7,5 +7,5 @@ setup(name='usklearn',
       author='Szymon Jaroszewicz, Krzysztof Rudas',
       author_email='krzysztof.rudas@ipipan.waw.pl',
       license='MIT',
-      packages=['usklearn'],
+      packages=find_packages(),
       zip_safe=False)
