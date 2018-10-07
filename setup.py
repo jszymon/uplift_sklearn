@@ -3,9 +3,9 @@
 setup(name='usklearn',
       version='0.1',
       description='Uplift scikit learn',
-      url='http://github.com/jszymon/uplift_sklearn/tree/master/usklearn',
+      url='http://github.com/jszymon/uplift_sklearn/',
       author='Szymon Jaroszewicz, Krzysztof Rudas',
-      author_email='krzysztof.rudas@ipipan.waw.pl',
-      license='MIT',
+      author_email='s.jaroszewicz@ipipan.waw.pl,krzysztof.rudas@ipipan.waw.pl',
+      license='GPLv3',
       packages=find_packages(),
       zip_safe=False)
