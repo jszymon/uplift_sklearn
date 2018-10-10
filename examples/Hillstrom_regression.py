@@ -76,7 +76,9 @@ print("training SATT:", e_satt(y, rlin.predict(X), trt, n_trt=1))
 
 # tuned ridge regression
 rridge = MultimodelUpliftRegressor(base_estimator=Ridge())
-rr = GridSearchCV(rridge, {"base_estimator__alpha":[0,1e-3,1e-2,1e-1,1,1e1,1e2,1e3]})
+rr = GridSearchCV(rridge,
+                  {"base_estimator__alpha":[0,1e-3,1e-2,1e-1,1,1e1,1e2,1e3]},
+                  cv=3)
 rr.fit(X, y, trt)
 print("\n\n")
 print(rr)
