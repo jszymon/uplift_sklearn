@@ -32,7 +32,6 @@ def encode_features(D):
             cols.append(x[:,:-1]) # skip last category
     return np.column_stack(cols)
 
-
 D = fetch_Hillstrom()
 X = encode_features(D)
 y = D.target_spend
@@ -53,7 +52,7 @@ rlin = MultimodelUpliftLinearRegressor()
 rlin.fit(X, y, trt)
 print("\n\n")
 print(rlin, rlin.coef_.shape, rlin.intercept_.shape)
-print("training SATE:", r.score(X, y, trt))
+print("training SATE:", rlin.score(X, y, trt))
 print("training SATT:", e_satt(y, rlin.predict(X), trt, n_trt=2))
 
 # merge treatments

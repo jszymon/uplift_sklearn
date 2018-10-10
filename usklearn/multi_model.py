@@ -82,3 +82,5 @@ class MultimodelUpliftLinearRegressor(MultimodelUpliftRegressor, LinearModel):
             intercept = np.squeeze(intercept)
         self.coef_ = coef
         self.intercept_ = intercept
+    def predict(self, X):
+        return LinearModel.predict(self, X)
