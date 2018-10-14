@@ -8,25 +8,15 @@ from sklearn.linear_model import LinearRegression
 from sklearn.linear_model.base import LinearModel
 
 from .base import UpliftRegressorMixin
+from .utils import check_trt
 
 class MultimodelUpliftRegressor(BaseEstimator, UpliftRegressorMixin):
     def __init__(self, base_estimator=LinearRegression()):
         self.base_estimator = base_estimator
     def fit(self, X, y, trt, n_trt=None):
-        # TODO: check_X_y_trt
         X, y = check_X_y(X, y, accept_sparse="csr")
-        trt = column_or_1d(trt)
-        check_consistent_length(X, y, trt)
-        if not np.issubdtype(trt.dtype, np.integer):
-            raise ValueError("Treatment values must be integers")
-        if (trt < 0).any():
-            raise ValueError("Treatment values must be >= 0")
-        # TODO: process_trt
-        if n_trt is not None:
-            self.n_trt_ = n_trt
-            assert np.max(trt) <= self.n_trt_
-        else:
-            self.n_trt_ = np.max(trt)
+        self.trt_, self.n_trt_ = check_trt(trt, n_trt)
+        check_consistent_length(X, y, self.trt_)
         self.n_models_ = self.n_trt_ + 1
         self.models_ = []
         self.n_ = np.empty(self.n_models_, dtype=int)
