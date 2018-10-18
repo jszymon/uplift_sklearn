@@ -11,8 +11,8 @@ import numpy as np
 from sklearn.linear_model import Ridge
 
 from usklearn.datasets import fetch_Hillstrom
-from usklearn.multi_model import MultimodelUpliftRegressor
-from usklearn.multi_model import MultimodelUpliftLinearRegressor
+from usklearn.meta import MultimodelUpliftRegressor
+from usklearn.meta import MultimodelUpliftLinearRegressor
 from usklearn.metrics import e_sate, e_satt
 from usklearn.model_selection import cross_validate, cross_val_score
 from usklearn.model_selection import GridSearchCV
