@@ -3,7 +3,7 @@
 import numpy as np
 
 from sklearn.base import BaseEstimator, clone
-from sklearn.utils import check_X_y, check_consistent_length, column_or_1d
+from sklearn.utils import check_X_y, check_consistent_length
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model.base import LinearModel
 
