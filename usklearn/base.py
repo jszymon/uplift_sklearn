@@ -10,6 +10,16 @@ class UpliftRegressorMixin(object):
 
     def score(self, X, y, trt, sample_weight=None):
         return -e_sate(y, self.predict(X), trt, n_trt=self.n_trt_)
+    def predict_action(self, X):
+        """Predict most beneficial action."""
+        y = self.predict(X)
+        if self.n_trt_ == 1:
+            a = (y > 0)*1
+        else:
+            a = np.argmax(y, axis=1) + 1
+            best_y = np.max(y, axis=1)
+            a[best_y <= 0] == 0
+        return a
 
 def is_uplift(estimator):
     """Returns True if the given estimator is an uplift model.

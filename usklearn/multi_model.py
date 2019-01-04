@@ -38,16 +38,7 @@ class MultimodelUpliftRegressor(BaseEstimator, UpliftRegressorMixin):
         else:
             y = np.column_stack(cols)
         return y
-    def predict_action(self, X):
-        """Predict most beneficial action."""
-        y = self.predict(X)
-        if self.n_trt_ == 1:
-            a = (y > 0)*1
-        else:
-            a = np.argmax(y, axis=1) + 1
-            best_y = np.max(y, axis=1)
-            a[best_y <= 0] == 0
-        return a
+
 
 class MultimodelUpliftLinearRegressor(MultimodelUpliftRegressor, LinearModel):
     def fit(self, *args, **kwargs):
