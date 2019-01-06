@@ -73,6 +73,7 @@ print("\n\n")
 print(rlin, rlin.coef_.shape, rlin.intercept_.shape)
 print("training SATE:", r.score(X, y, trt))
 print("training SATT:", e_satt(y, rlin.predict(X), trt, n_trt=1))
+print("crossval SATE:", cross_val_score(rlin, X, y, trt, n_trt=1, cv=10))
 
 # tuned ridge regression
 rridge = MultimodelUpliftRegressor(base_estimator=Ridge())
