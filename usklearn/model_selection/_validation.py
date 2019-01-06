@@ -37,6 +37,8 @@ from sklearn.model_selection._split import check_cv
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection._validation import _aggregate_score_dicts
 
+from ..utils import check_trt
+
 __all__ = ['cross_validate', 'cross_val_score', 'cross_val_predict',
            'permutation_test_score', 'learning_curve', 'validation_curve']
 
@@ -196,8 +198,7 @@ def cross_validate(estimator, X, y, trt, n_trt=None, groups=None, scoring=None, 
     """
     X, y, trt, groups = indexable(X, y, trt, groups)
 
-    if n_trt is None:
-        n_trt = np.max(trt)
+    trt, n_trt = check_trt(trt, n_trt)
     # by default, always stratify on treatment and class if available
     if is_classifier(estimator):
         le = LabelEncoder()
