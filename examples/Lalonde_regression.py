@@ -18,9 +18,13 @@ from usklearn.model_selection import cross_validate, cross_val_score
 from usklearn.model_selection import GridSearchCV
 
 DA = fetch_Lalonde("A")
-X = DA.data
-y = DA.target
-trt = DA.treatment
+print(DA.data.shape)
+DB = fetch_Lalonde("B")
+print(DB.data.shape)
+D = DB
+X = D.data
+y = D.target
+trt = D.treatment
 
 r = MultimodelUpliftRegressor()
 r.fit(X, y, trt)
