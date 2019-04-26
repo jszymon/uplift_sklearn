@@ -68,17 +68,24 @@ def fetch_Hillstrom(data_home=None, download_if_missing=True,
     -------
     dataset : dict-like object with the following attributes:
 
-    dataset.data : numpy array of shape (581012, 54)
-        Each row corresponds to the 54 features in the dataset.
+    dataset.data : numpy array
+        Each row corresponds to the features in the dataset.
 
-    dataset.target : numpy array of shape (581012,)
-        Each value corresponds to one of the 7 forest covertypes with values
-        ranging between 1 to 7.
+    dataset.target_visit : numpy array
+        Each value is 1 if website visit occurred 0 otherwise.
+
+    dataset.target_conversion : numpy array
+        Each value is 1 if purchase occurred 0 otherwise.
+
+    dataset.target_spend : numpy array
+        Each value corresponds to the amount of money spent.
 
     dataset.DESCR : string
-        Description of the forest covertype dataset.
+        Description of the Hillstrom dataset.
 
-    (data, target) : tuple if ``return_X_y`` is True"""
+    (data, target_visit, target_conversion, target_spend) : tuple if
+        ``return_X_y`` is True
+    """
 
     data_home = get_data_home(data_home=data_home)
     Hillstrom_dir = join(data_home, "uplift_sklearn", "Hillstrom")
