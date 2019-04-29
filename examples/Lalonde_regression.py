@@ -61,5 +61,18 @@ print("crossval SATE:", cross_val_score(rr, X, y, trt, n_trt=1, cv=10))
 #                                       n_trt=1, cv=10,
 #                                       scoring="e_sate")["test_score"])
 
-#TODO: tune T/C ridge separately
+#: tune T/C ridge separately
+rridge2 = MultimodelUpliftRegressor(base_estimator = [("model_c", Ridge()),
+                                                ("model_t", Ridge())])
+rr2 = GridSearchCV(rridge2,
+                    {"model_c__alpha":[0,1e-3,1e-2,1e-1,1,1e1,1e2,1e3],
+                    "model_t__alpha":[0,1e-3,1e-2,1e-1,1,1e1,1e2,1e3]},
+                    cv=3)
+rr2.fit(X, y, trt)
+print("\n\n")
+print(rr)
+print("best alpha:", rr2.best_params_)
+print("training SATE:", rr2.score(X, y, trt))
+print("training SATT:", e_satt(y, rr2.predict(X), trt))
+print("crossval SATE:", cross_val_score(rr2, X, y, trt, n_trt=1, cv=10))
 
