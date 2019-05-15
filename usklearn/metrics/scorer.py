@@ -29,9 +29,36 @@ class _UpliftPredictScorer(_BaseScorer):
         else:
             return self._sign * self._score_func(y_true, y_pred, trt, n_trt,
                                                  **self._kwargs)
+class _UpliftDecisionScorer(_BaseScorer):
+    def __call__(self, estimator, X, y_true, trt, n_trt=None, sample_weight=None):
+        """Evaluate predicted treatment decisions for X relative to y_true.
+        Parameters
+        ----------
+        estimator : object
+            Trained estimator to use for scoring. Must have a predict_proba
+            method; the output of that is used to compute the score.
+        X : array-like or sparse matrix
+            Test data that will be fed to estimator.predict.
+        y_true : array-like
+            Gold standard target values for X.
+        sample_weight : array-like, optional (default=None)
+            Sample weights.
+        Returns
+        -------
+        score : float
+            Score function applied to prediction of estimator on X.
+        """
+        a = estimator.predict_action(X)
+        if sample_weight is not None:
+            return self._sign * self._score_func(a, y_pred, trt, n_trt,
+                                                 sample_weight=sample_weight,
+                                                 **self._kwargs)
+        else:
+            return self._sign * self._score_func(a, y_pred, trt, n_trt,
+                                                 **self._kwargs)
 
-def make_uplift_scorer(score_func, greater_is_better=True, needs_proba=False,
-                       needs_threshold=False, **kwargs):
+def make_uplift_scorer(score_func, greater_is_better=True, needs_decision=False,
+                       needs_proba=False, needs_threshold=False, **kwargs):
     """Make a scorer from a performance metric or loss function.
     This factory function wraps scoring functions for use in GridSearchCV
     and cross_val_score. It takes a score function, such as ``accuracy_score``,
@@ -76,13 +103,15 @@ def make_uplift_scorer(score_func, greater_is_better=True, needs_proba=False,
     if needs_proba or needs_threshold:
         raise NotImplementedError()
     sign = 1 if greater_is_better else -1
-    if needs_proba and needs_threshold:
-        raise ValueError("Set either needs_proba or needs_threshold to True,"
-                         " but not both.")
+    if needs_proba + needs_decision + needs_decision > 1:
+        raise ValueError("Set only one of needs_proba, needs_threshold or"
+                         " needs_decision to True.")
     if needs_proba:
         cls = _UpliftProbaScorer
     elif needs_threshold:
         cls = _UpliftThresholdScorer
+    elif needs_decision:
+        cls = _UpliftDecisionScorer
     else:
         cls = _UpliftPredictScorer
     return cls(score_func, sign, kwargs)
