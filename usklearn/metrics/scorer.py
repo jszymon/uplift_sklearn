@@ -50,11 +50,11 @@ class _UpliftDecisionScorer(_BaseScorer):
         """
         a = estimator.predict_action(X)
         if sample_weight is not None:
-            return self._sign * self._score_func(a, y_pred, trt, n_trt,
+            return self._sign * self._score_func(y_true, a, trt, n_trt,
                                                  sample_weight=sample_weight,
                                                  **self._kwargs)
         else:
-            return self._sign * self._score_func(a, y_pred, trt, n_trt,
+            return self._sign * self._score_func(y_true, a, trt, n_trt,
                                                  **self._kwargs)
 
 def make_uplift_scorer(score_func, greater_is_better=True, needs_decision=False,
@@ -103,7 +103,7 @@ def make_uplift_scorer(score_func, greater_is_better=True, needs_decision=False,
     if needs_proba or needs_threshold:
         raise NotImplementedError()
     sign = 1 if greater_is_better else -1
-    if needs_proba + needs_decision + needs_decision > 1:
+    if needs_proba + needs_decision + needs_threshold > 1:
         raise ValueError("Set only one of needs_proba, needs_threshold or"
                          " needs_decision to True.")
     if needs_proba:

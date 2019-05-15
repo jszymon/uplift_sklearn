@@ -198,6 +198,10 @@ class BaseSearchCV(six.with_metaclass(ABCMeta, BaseEstimator,
         """
         self._check_is_fitted('predict')
         return self.best_estimator_.predict(X)
+    @if_delegate_has_method(delegate=('best_estimator_', 'estimator'))
+    def predict_action(self, X):
+        self._check_is_fitted('predict_action')
+        return self.best_estimator_.predict_action(X)
 
     @if_delegate_has_method(delegate=('best_estimator_', 'estimator'))
     def predict_proba(self, X):
