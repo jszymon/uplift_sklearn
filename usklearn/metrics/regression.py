@@ -11,14 +11,16 @@ import numpy as np
 
 from sklearn.utils.validation import check_array, check_consistent_length
 
+from ..utils.validation import check_trt
+
 def _e_satx(y_true, y_pred, trt, n_trt=1, satt=True):
     """Generic method for SATE and SATT."""
     y_true = check_array(y_true, ensure_2d=False)
     y_pred = check_array(y_pred, ensure_2d=False)
     if y_pred.ndim == 1:
         y_pred = y_pred.reshape((-1, 1))
+    trt, n_trt = check_trt(trt, n_trt)
     check_consistent_length(y_true, y_pred, trt)
-    assert max(trt) <= n_trt
 
     average_ys_true = []
     sate_pred_s = []
