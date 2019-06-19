@@ -22,17 +22,17 @@ class UpliftRegressorMixin(object):
         return a
 
 class UpliftTransformerMixin(object):
-    def fit_transform(self, X, trt, n_trt=None, y=None, **fit_params):
+    def fit_transform(self, X, y=None, trt=None, n_trt=None, **fit_params):
         # non-optimized default implementation; override when a better
         # method is possible for a given clustering algorithm
         if y is None:
             # fit method of arity 1 (unsupervised transformation)
-            fitted = self.fit(X, trt, n_trt, **fit_params)
-            return fitted.transform(X, trt, n_trt)
+            fitted = self.fit(X, y, trt, n_trt, **fit_params)
+            return fitted.transform(X, y, trt, n_trt)
         else:
             # fit method of arity 2 (supervised transformation)
-            fitted = self.fit(X, trt, n_trt, y, **fit_params)
-            return fitted.transform(X, trt, n_trt)
+            fitted = self.fit(X, y, trt, n_trt, **fit_params)
+            return fitted.transform(X, y, trt, n_trt)
 
 def is_uplift(estimator):
     """Returns True if the given estimator is an uplift model.

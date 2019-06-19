@@ -1,5 +1,5 @@
 """Preprocessing."""
 
-from .preprocessing import ByTreatmentTransformer
+from .by_treatment_transformer import ByTreatmentTransformer
 
 __all__ = ["ByTreatmentTransformer"]
