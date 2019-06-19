@@ -4,37 +4,56 @@ from sklearn.base import clone
 
 from ..base import UpliftTransformerMixin
 
-# in the future treatment specific transforms will be implemented, similar to
-# sklearn.compose.ColumnTransformer
 class ByTreatmentTransformer(UpliftTransformerMixin):
-    def __init__(self, remainder="passthrough")
-        self.remainder=remainder
-    def fit(self, X, trt, n_trt=None, y=None):
+    """Apply sklearn transformer to uplift data.
+
+    Parameters
+    ----------
+
+    transformer : a sklearn transformer object or 'passthrough'.
+    by_treatment : if True, apply transform within each treatment
+        separately.
+    """
+    def __init__(self, transformer="passthrough", by_treatment=False):
+        self.transformer = transformer
+        self.by_treatment = by_treatment
+    def fit(self, X, y=None, trt=None, n_trt=None):
         X, y = check_X_y(X, y, accept_sparse="csr")
-        self.trt_, self.n_trt_ = check_trt(trt, n_trt)
-        check_consistent_length(X, y, self.trt_)
-        # validate remainder
-        self.is_transformer_ = ((hasattr(self.remainder, "fit")
-                                 or hasattr(self.remainder, "fit_transform"))
-                                 and hasattr(self.remainder, "transform"))
-        if (self.remainder not in ('drop', 'passthrough')
+        if transform == "passthrough" or not by_treatment:
+            check_consistent_length(X, y)
+        else:
+            trt, self.n_trt_ = check_trt(trt, n_trt)
+            check_consistent_length(X, y, trt)
+        # validate transform
+        self.is_transformer_ = ((hasattr(self.transformer, "fit")
+                                 or hasattr(self.transformer, "fit_transform"))
+                                 and hasattr(self.transformer, "transform"))
+        if (self.remainder != 'passthrough'
                 and not is_transformer_):
             raise ValueError(
-                "The remainder keyword needs to be one of 'drop', "
+                "The transform keyword needs to be either "
                 "'passthrough', or estimator. '%s' was passed instead" %
-                self.remainder)
+                self.transform)
         if self.is_transformer_:
-            self.remainder_transformers = [None] * self.n_trt_
-            for t in range(self.n_trt_ + 1):
-                self.remainder_transformers[t] = clone(self.remainder)
-                self.remainder_transformers[t].fit(X[trt==t], y[trt=t])
+            if self.by_treatment:
+                self.transformers_ = [None] * self.n_trt_
+                for t in range(self.n_trt_ + 1):
+                    self.transformers_[t] = clone(self.transformer)
+                    self.transformers_[t].fit(X[trt==t], y[trt=t])
+            else:
+                self.transformers_ = [clone(self.transformer)]
+                self.transformers_[0].fit(X, y)
         return self
-    def transform(self, X, trt, n_trt=None, y=None):
-        trt_, n_trt_ = check_trt(trt, n_trt)
-        if trt_.max() > self.n_trt_:
-            raise ValueError("More treatment if transform than were fitted")
-        if any(sparse.issparse(f) for f in Xs):
-            raise NotImplemented() # TODO
+    def transform(self, X, y=None, trt=None, n_trt=None):
+        if self.is_transformer_ and self.by_treatment:
+            trt_, n_trt_ = check_trt(trt, n_trt)
+            if trt_.max() > self.n_trt_:
+                raise ValueError("More treatments to transform"
+                                 " than were fitted")
+        if not self.is_transformer_:
+            X_transf = X # passthrough
+        elif not self.by_treatment:
+            X_transf = self.transformers_[0].transform(X)
         else:
             X_transf = np.emptylike(X)
             for t in range(self.n_trt_ + 1):
