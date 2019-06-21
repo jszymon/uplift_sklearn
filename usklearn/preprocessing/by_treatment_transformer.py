@@ -50,7 +50,7 @@ class ByTreatmentTransformer(UpliftTransformerMixin):
                 self.transformers_ = [clone(self.transformer)]
                 self.transformers_[0].fit(X, y)
         return self
-    def transform(self, X, y=None, trt=None, n_trt=None):
+    def transform(self, X, trt=None, n_trt=None):
         if self.is_transformer_ and self.by_treatment:
             trt_, n_trt_ = check_trt(trt, n_trt)
             if trt_.max() > self.n_trt_:
@@ -64,8 +64,5 @@ class ByTreatmentTransformer(UpliftTransformerMixin):
             X_transf = np.empty_like(X)
             for t in range(self.n_trt_ + 1):
                 tr = self.transformers_[t]
-                if y is None:
-                    X_transf[trt_ == t] = tr.transform(X[trt_==t])
-                else:
-                    X_transf[trt_ == t] = tr.transform(X[trt_==t], y[trt_==t])
+                X_transf[trt_ == t] = tr.transform(X[trt_==t])
         return X_transf
