@@ -8,6 +8,7 @@ class Pipeline(sklearn.pipeline.Pipeline):
     estimator. (it makes no sense to pass them to transforms since trt
     is not available for future data).
     """
+    
     def fit(self, X, y=None, trt=None, n_trt=None, **fit_params):
         n, _ = self.steps[-1]
         fit_params[n + "__trt"] = trt
@@ -18,6 +19,7 @@ class Pipeline(sklearn.pipeline.Pipeline):
     @if_delegate_has_method(delegate='_final_estimator')
     def score(self, X, y=None, trt=None, n_trt=None, sample_weight=None):
         """Apply transforms, and score with the final estimator
+
         Parameters
         ----------
         X : iterable
@@ -31,10 +33,12 @@ class Pipeline(sklearn.pipeline.Pipeline):
         sample_weight : array-like, default=None
             If not None, this argument is passed as ``sample_weight`` keyword
             argument to the ``score`` method of the final estimator.
+
         Returns
         -------
         score : float
         """
+        
         Xt = X
         for name, transform in self.steps[:-1]:
             if transform is not None:
@@ -57,6 +61,7 @@ class Pipeline(sklearn.pipeline.Pipeline):
             steps of the pipeline.
         predict_action_params : additional parameters to pass to
             predict_action method of final estimator
+
         Returns
         -------
         score : float
