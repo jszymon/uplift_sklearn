@@ -36,10 +36,9 @@ from sklearn.utils.fixes import MaskedArray
 from sklearn.utils.random import sample_without_replacement
 from sklearn.utils.validation import indexable, check_is_fitted
 from sklearn.utils.metaestimators import if_delegate_has_method
-from sklearn.utils.deprecation import DeprecationDict
 from sklearn.metrics.scorer import _check_multimetric_scoring
 from sklearn.metrics.scorer import check_scoring
-from sklearn.model_selection._search import _CVScoreTuple, _check_param_grid
+from sklearn.model_selection._search import _check_param_grid
 
 from sklearn.model_selection import (ParameterGrid, fit_grid_point,
                                          ParameterSampler)
@@ -402,7 +401,7 @@ class BaseSearchCV(six.with_metaclass(ABCMeta, BaseEstimator,
             train_scores = _aggregate_score_dicts(train_score_dicts)
 
         # TODO: replace by a dict in 0.21
-        results = (DeprecationDict() if self.return_train_score == 'warn'
+        results = ({} if self.return_train_score == 'warn'
                    else {})
 
         def _store(key_name, array, weights=None, splits=False, rank=False):
@@ -494,31 +493,31 @@ class BaseSearchCV(six.with_metaclass(ABCMeta, BaseEstimator,
 
         return self
 
-    @property
-    def grid_scores_(self):
-        check_is_fitted(self, 'cv_results_')
-        if self.multimetric_:
-            raise AttributeError("grid_scores_ attribute is not available for"
-                                 " multi-metric evaluation.")
-        warnings.warn(
-            "The grid_scores_ attribute was deprecated in version 0.18"
-            " in favor of the more elaborate cv_results_ attribute."
-            " The grid_scores_ attribute will not be available from 0.20",
-            DeprecationWarning)
-
-        grid_scores = list()
-
-        for i, (params, mean, std) in enumerate(zip(
-                self.cv_results_['params'],
-                self.cv_results_['mean_test_score'],
-                self.cv_results_['std_test_score'])):
-            scores = np.array(list(self.cv_results_['split%d_test_score'
-                                                    % s][i]
-                                   for s in range(self.n_splits_)),
-                              dtype=np.float64)
-            grid_scores.append(_CVScoreTuple(params, mean, scores))
-
-        return grid_scores
+    #@property
+    #def grid_scores_(self):
+    #    check_is_fitted(self, 'cv_results_')
+    #    if self.multimetric_:
+    #        raise AttributeError("grid_scores_ attribute is not available for"
+    #                             " multi-metric evaluation.")
+    #    warnings.warn(
+    #        "The grid_scores_ attribute was deprecated in version 0.18"
+    #        " in favor of the more elaborate cv_results_ attribute."
+    #        " The grid_scores_ attribute will not be available from 0.20",
+    #        DeprecationWarning)
+    #
+    #    grid_scores = list()
+    #
+    #    for i, (params, mean, std) in enumerate(zip(
+    #            self.cv_results_['params'],
+    #            self.cv_results_['mean_test_score'],
+    #            self.cv_results_['std_test_score'])):
+    #        scores = np.array(list(self.cv_results_['split%d_test_score'
+    #                                                % s][i]
+    #                               for s in range(self.n_splits_)),
+    #                          dtype=np.float64)
+    #        grid_scores.append(_CVScoreTuple(params, mean, scores))
+    #
+    #    return grid_scores
 
 
 class GridSearchCV(BaseSearchCV):

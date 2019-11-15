@@ -26,7 +26,6 @@ import scipy.sparse as sp
 
 from sklearn.base import is_classifier, clone
 from sklearn.utils import indexable, check_random_state, safe_indexing
-from sklearn.utils.deprecation import DeprecationDict
 from sklearn.utils.validation import _is_arraylike, _num_samples
 from sklearn.utils.metaestimators import _safe_split
 from sklearn.externals.joblib import Parallel, delayed, logger
@@ -230,7 +229,7 @@ def cross_validate(estimator, X, y, trt, n_trt=None, groups=None, scoring=None, 
     test_scores = _aggregate_score_dicts(test_scores)
 
     # TODO: replace by a dict in 0.21
-    ret = DeprecationDict() if return_train_score == 'warn' else {}
+    ret = {} if return_train_score == 'warn' else {}
     ret['fit_time'] = np.array(fit_times)
     ret['score_time'] = np.array(score_times)
 

@@ -9,7 +9,7 @@ for details.
 
 import logging
 from os.path import dirname, exists, join
-from os import remove
+from os import remove, makedirs
 import csv
 
 import numpy as np
@@ -20,7 +20,6 @@ from sklearn.datasets.base import RemoteFileMetadata
 from sklearn.utils import Bunch
 from sklearn.externals import joblib
 from sklearn.utils import check_random_state
-from sklearn.utils.fixes import makedirs
 
 ARCHIVE = RemoteFileMetadata(
     filename="Hillstrom.csv",
