@@ -14,11 +14,11 @@ import csv
 
 import numpy as np
 
-from sklearn.datasets.base import get_data_home
-from sklearn.datasets.base import _fetch_remote
-from sklearn.datasets.base import RemoteFileMetadata
+from sklearn.datasets import get_data_home
+from sklearn.datasets._base import _fetch_remote
+from sklearn.datasets._base import RemoteFileMetadata
 from sklearn.utils import Bunch
-from sklearn.externals import joblib
+import joblib
 from sklearn.utils import check_random_state
 
 ARCHIVE = RemoteFileMetadata(

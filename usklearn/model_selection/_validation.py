@@ -22,18 +22,19 @@ import warnings
 import numbers
 import time
 from traceback import format_exception_only
+from contextlib import suppress
 
 import numpy as np
 import scipy.sparse as sp
 from joblib import Parallel, delayed
 
 from sklearn.base import is_classifier, clone
-from sklearn.utils import (indexable, check_random_state, safe_indexing,
+from sklearn.utils import (indexable, check_random_state, _safe_indexing,
                      _message_with_time)
 from sklearn.utils.validation import _is_arraylike, _num_samples
 from sklearn.utils.metaestimators import _safe_split
-#from sklearn.externals.joblib import Parallel, delayed
-from sklearn.metrics.scorer import check_scoring, _check_multimetric_scoring
+from sklearn.metrics import check_scoring
+from sklearn.metrics._scorer import _check_multimetric_scoring, _MultimetricScorer
 from sklearn.exceptions import FitFailedWarning
 from sklearn.model_selection._split import check_cv
 from sklearn.preprocessing import LabelEncoder
@@ -47,7 +48,7 @@ __all__ = ['cross_validate', 'cross_val_score', 'cross_val_predict',
 def cross_validate(estimator, X, y, trt, n_trt=None, groups=None, scoring=None, cv=None,
                    n_jobs=None, verbose=0, fit_params=None,
                    pre_dispatch='2*n_jobs', return_train_score=False,
-                   return_estimator=False, error_score='raise-deprecating'):
+                   return_estimator=False, error_score=np.nan):
     """Evaluate metric(s) by cross-validation and also record fit/score times.
 
     Read more in the :ref:`User Guide <multimetric_cross_validation>`.
@@ -66,8 +67,8 @@ def cross_validate(estimator, X, y, trt, n_trt=None, groups=None, scoring=None, 
 
     groups : array-like, with shape (n_samples,), optional
         Group labels for the samples used while splitting the dataset into
-        train/test set. Only used in conjunction with a "Group" `cv` instance
-        (e.g., `GroupKFold`).
+        train/test set. Only used in conjunction with a "Group" :term:`cv`
+        instance (e.g., :class:`GroupKFold`).
 
     scoring : string, callable, list/tuple, dict or None, default: None
         A single string (see :ref:`scoring_parameter`) or a callable
@@ -88,7 +89,7 @@ def cross_validate(estimator, X, y, trt, n_trt=None, groups=None, scoring=None, 
         Determines the cross-validation splitting strategy.
         Possible inputs for cv are:
 
-        - None, to use the default 3-fold cross validation,
+        - None, to use the default 5-fold cross validation,
         - integer, to specify the number of folds in a `(Stratified)KFold`,
         - :term:`CV splitter`,
         - An iterable yielding (train, test) splits as arrays of indices.
@@ -140,19 +141,15 @@ def cross_validate(estimator, X, y, trt, n_trt=None, groups=None, scoring=None, 
     return_estimator : boolean, default False
         Whether to return the estimators fitted on each split.
 
-    error_score : 'raise' | 'raise-deprecating' or numeric
+    error_score : 'raise' or numeric
         Value to assign to the score if an error occurs in estimator fitting.
         If set to 'raise', the error is raised.
-        If set to 'raise-deprecating', a FutureWarning is printed before the
-        error is raised.
         If a numeric value is given, FitFailedWarning is raised. This parameter
         does not affect the refit step, which will always raise the error.
-        Default is 'raise-deprecating' but from version 0.22 it will change
-        to np.nan.
 
     Returns
     -------
-    scores : dict of float arrays of shape=(n_splits,)
+    scores : dict of float arrays of shape (n_splits,)
         Array of scores of the estimator for each run of the cross validation.
 
         A dict of arrays containing the score/time arrays for each scorer is
@@ -160,8 +157,14 @@ def cross_validate(estimator, X, y, trt, n_trt=None, groups=None, scoring=None, 
 
             ``test_score``
                 The score array for test scores on each cv split.
+                Suffix ``_score`` in ``test_score`` changes to a specific
+                metric like ``test_r2`` or ``test_auc`` if there are
+                multiple scoring metrics in the scoring parameter.
             ``train_score``
                 The score array for train scores on each cv split.
+                Suffix ``_score`` in ``train_score`` changes to a specific
+                metric like ``train_r2`` or ``train_auc`` if there are
+                multiple scoring metrics in the scoring parameter.
                 This is available only if ``return_train_score`` parameter
                 is ``True``.
             ``fit_time``
@@ -180,7 +183,7 @@ def cross_validate(estimator, X, y, trt, n_trt=None, groups=None, scoring=None, 
     --------
     >>> from sklearn import datasets, linear_model
     >>> from sklearn.model_selection import cross_validate
-    >>> from sklearn.metrics.scorer import make_scorer
+    >>> from sklearn.metrics import make_scorer
     >>> from sklearn.metrics import confusion_matrix
     >>> from sklearn.svm import LinearSVC
     >>> diabetes = datasets.load_diabetes()
@@ -191,9 +194,9 @@ def cross_validate(estimator, X, y, trt, n_trt=None, groups=None, scoring=None, 
     Single metric evaluation using ``cross_validate``
 
     >>> cv_results = cross_validate(lasso, X, y, cv=3)
-    >>> sorted(cv_results.keys())                         # doctest: +ELLIPSIS
+    >>> sorted(cv_results.keys())
     ['fit_time', 'score_time', 'test_score']
-    >>> cv_results['test_score']    # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    >>> cv_results['test_score']
     array([0.33150734, 0.08022311, 0.03531764])
 
     Multiple metric evaluation using ``cross_validate``
@@ -202,9 +205,9 @@ def cross_validate(estimator, X, y, trt, n_trt=None, groups=None, scoring=None, 
     >>> scores = cross_validate(lasso, X, y, cv=3,
     ...                         scoring=('r2', 'neg_mean_squared_error'),
     ...                         return_train_score=True)
-    >>> print(scores['test_neg_mean_squared_error'])      # doctest: +ELLIPSIS
+    >>> print(scores['test_neg_mean_squared_error'])
     [-3635.5... -3573.3... -6114.7...]
-    >>> print(scores['train_r2'])                         # doctest: +ELLIPSIS
+    >>> print(scores['train_r2'])
     [0.28010158 0.39088426 0.22784852]
 
     See Also
@@ -274,7 +277,7 @@ def cross_validate(estimator, X, y, trt, n_trt=None, groups=None, scoring=None, 
 
 def cross_val_score(estimator, X, y, trt, n_trt=None, groups=None, scoring=None, cv=None,
                     n_jobs=None, verbose=0, fit_params=None,
-                    pre_dispatch='2*n_jobs', error_score='raise-deprecating'):
+                    pre_dispatch='2*n_jobs', error_score=np.nan):
     """Evaluate a score by cross-validation
 
     Read more in the :ref:`User Guide <cross_validation>`.
@@ -293,8 +296,8 @@ def cross_val_score(estimator, X, y, trt, n_trt=None, groups=None, scoring=None,
 
     groups : array-like, with shape (n_samples,), optional
         Group labels for the samples used while splitting the dataset into
-        train/test set. Only used in conjunction with a "Group" `cv` instance
-        (e.g., `GroupKFold`).
+        train/test set. Only used in conjunction with a "Group" :term:`cv`
+        instance (e.g., :class:`GroupKFold`).
 
     scoring : string, callable or None, optional, default: None
         A string (see model evaluation documentation) or
@@ -311,7 +314,7 @@ def cross_val_score(estimator, X, y, trt, n_trt=None, groups=None, scoring=None,
         Determines the cross-validation splitting strategy.
         Possible inputs for cv are:
 
-        - None, to use the default 3-fold cross validation,
+        - None, to use the default 5-fold cross validation,
         - integer, to specify the number of folds in a `(Stratified)KFold`,
         - :term:`CV splitter`,
         - An iterable yielding (train, test) splits as arrays of indices.
@@ -352,15 +355,11 @@ def cross_val_score(estimator, X, y, trt, n_trt=None, groups=None, scoring=None,
             - A string, giving an expression as a function of n_jobs,
               as in '2*n_jobs'
 
-    error_score : 'raise' | 'raise-deprecating' or numeric
+    error_score : 'raise' or numeric
         Value to assign to the score if an error occurs in estimator fitting.
         If set to 'raise', the error is raised.
-        If set to 'raise-deprecating', a FutureWarning is printed before the
-        error is raised.
         If a numeric value is given, FitFailedWarning is raised. This parameter
         does not affect the refit step, which will always raise the error.
-        Default is 'raise-deprecating' but from version 0.22 it will change
-        to np.nan.
 
     Returns
     -------
@@ -375,7 +374,7 @@ def cross_val_score(estimator, X, y, trt, n_trt=None, groups=None, scoring=None,
     >>> X = diabetes.data[:150]
     >>> y = diabetes.target[:150]
     >>> lasso = linear_model.Lasso()
-    >>> print(cross_val_score(lasso, X, y, cv=3))  # doctest: +ELLIPSIS
+    >>> print(cross_val_score(lasso, X, y, cv=3))
     [0.33150734 0.08022311 0.03531764]
 
     See Also
@@ -409,7 +408,7 @@ def _fit_and_score(estimator, X, y, trt, n_trt, scorer, train, test, verbose,
                    parameters, fit_params, return_train_score=False,
                    return_parameters=False, return_n_test_samples=False,
                    return_times=False, return_estimator=False,
-                   error_score='raise-deprecating'):
+                   error_score=np.nan):
     """Fit estimator and compute scores for a given dataset split.
 
     Parameters
@@ -443,15 +442,11 @@ def _fit_and_score(estimator, X, y, trt, n_trt, scorer, train, test, verbose,
     verbose : integer
         The verbosity level.
 
-    error_score : 'raise' | 'raise-deprecating' or numeric
+    error_score : 'raise' or numeric
         Value to assign to the score if an error occurs in estimator fitting.
         If set to 'raise', the error is raised.
-        If set to 'raise-deprecating', a FutureWarning is printed before the
-        error is raised.
         If a numeric value is given, FitFailedWarning is raised. This parameter
         does not affect the refit step, which will always raise the error.
-        Default is 'raise-deprecating' but from version 0.22 it will change
-        to np.nan.
 
     parameters : dict or None
         Parameters to be set on the estimator.
@@ -513,17 +508,22 @@ def _fit_and_score(estimator, X, y, trt, n_trt, scorer, train, test, verbose,
 
     train_scores = {}
     if parameters is not None:
-        estimator.set_params(**parameters)
+        # clone after setting parameters in case any parameters
+        # are estimators (like pipeline steps)
+        # because pipeline doesn't clone steps in fit
+        cloned_parameters = {}
+        for k, v in parameters.items():
+            cloned_parameters[k] = clone(v, safe=False)
+
+        estimator = estimator.set_params(**cloned_parameters)
 
     start_time = time.time()
 
     X_train, y_train = _safe_split(estimator, X, y, train)
     X_test, y_test = _safe_split(estimator, X, y, test, train)
-    trt_train = safe_indexing(trt, train)
-    trt_test = safe_indexing(trt, test)
+    trt_train = _safe_indexing(trt, train)
+    trt_test = _safe_indexing(trt, test)
 
-    is_multimetric = not callable(scorer)
-    n_scorers = len(scorer.keys()) if is_multimetric else 1
     try:
         if y_train is None:
             estimator.fit(X_train, **fit_params)
@@ -536,21 +536,11 @@ def _fit_and_score(estimator, X, y, trt, n_trt, scorer, train, test, verbose,
         score_time = 0.0
         if error_score == 'raise':
             raise
-        elif error_score == 'raise-deprecating':
-            warnings.warn("From version 0.22, errors during fit will result "
-                          "in a cross validation score of NaN by default. Use "
-                          "error_score='raise' if you want an exception "
-                          "raised or error_score=np.nan to adopt the "
-                          "behavior from version 0.22.",
-                          FutureWarning)
-            raise
         elif isinstance(error_score, numbers.Number):
-            if is_multimetric:
-                test_scores = dict(zip(scorer.keys(),
-                                   [error_score, ] * n_scorers))
+            if isinstance(scorer, dict):
+                test_scores = {name: error_score for name in scorer}
                 if return_train_score:
-                    train_scores = dict(zip(scorer.keys(),
-                                        [error_score, ] * n_scorers))
+                    train_scores = test_scores.copy()
             else:
                 test_scores = error_score
                 if return_train_score:
@@ -567,15 +557,12 @@ def _fit_and_score(estimator, X, y, trt, n_trt, scorer, train, test, verbose,
 
     else:
         fit_time = time.time() - start_time
-        # _score will return dict if is_multimetric is True
-        test_scores = _score(estimator, X_test, y_test, trt_test, n_trt, scorer, is_multimetric)
+        test_scores = _score(estimator, X_test, y_test, trt_test, n_trt, scorer)
         score_time = time.time() - start_time - fit_time
         if return_train_score:
-            train_scores = _score(estimator, X_train, y_train, trt_train, n_trt,
-                                  scorer, is_multimetric)
-
+            train_scores = _score(estimator, X_train, y_train, trt_train, n_trt, scorer)
     if verbose > 2:
-        if is_multimetric:
+        if isinstance(test_scores, dict):
             for scorer_name in sorted(test_scores):
                 msg += ", %s=" % scorer_name
                 if return_train_score:
@@ -605,58 +592,38 @@ def _fit_and_score(estimator, X, y, trt, n_trt, scorer, train, test, verbose,
     return ret
 
 
-def _score(estimator, X_test, y_test, trt_test, n_trt, scorer, is_multimetric=False):
+def _score(estimator, X_test, y_test, trt_test, n_trt, scorer):
     """Compute the score(s) of an estimator on a given test set.
 
-    Will return a single float if is_multimetric is False and a dict of floats,
-    if is_multimetric is True
+    Will return a dict of floats if `scorer` is a dict, otherwise a single
+    float is returned.
     """
-    if is_multimetric:
-        return _multimetric_score(estimator, X_test, y_test, trt_test, n_trt, scorer)
+    if isinstance(scorer, dict):
+        # will cache method calls if needed. scorer() returns a dict
+        scorer = _MultimetricScorer(**scorer)
+    if y_test is None:
+        scores = scorer(estimator, X_test, trt_test, n_trt)
     else:
-        if y_test is None:
-            score = scorer(estimator, X_test)
-        else:
-            score = scorer(estimator, X_test, y_test, trt_test, n_trt)
+        scores = scorer(estimator, X_test, y_test, trt_test, n_trt)
 
-        if hasattr(score, 'item'):
-            try:
+    error_msg = ("scoring must return a number, got %s (%s) "
+                 "instead. (scorer=%s)")
+    if isinstance(scores, dict):
+        for name, score in scores.items():
+            if hasattr(score, 'item'):
+                with suppress(ValueError):
+                    # e.g. unwrap memmapped scalars
+                    score = score.item()
+            if not isinstance(score, numbers.Number):
+                raise ValueError(error_msg % (score, type(score), name))
+            scores[name] = score
+    else:  # scalar
+        if hasattr(scores, 'item'):
+            with suppress(ValueError):
                 # e.g. unwrap memmapped scalars
-                score = score.item()
-            except ValueError:
-                # non-scalar?
-                pass
-
-        if not isinstance(score, numbers.Number):
-            raise ValueError("scoring must return a number, got %s (%s) "
-                             "instead. (scorer=%r)"
-                             % (str(score), type(score), scorer))
-    return score
-
-
-def _multimetric_score(estimator, X_test, y_test, trt_test, n_trt, scorers):
-    """Return a dict of score for multimetric scoring"""
-    scores = {}
-
-    for name, scorer in scorers.items():
-        if y_test is None:
-            score = scorer(estimator, X_test)
-        else:
-            score = scorer(estimator, X_test, y_test, trt_test, n_trt)
-
-        if hasattr(score, 'item'):
-            try:
-                # e.g. unwrap memmapped scalars
-                score = score.item()
-            except ValueError:
-                # non-scalar?
-                pass
-        scores[name] = score
-
-        if not isinstance(score, numbers.Number):
-            raise ValueError("scoring must return a number, got %s (%s) "
-                             "instead. (scorer=%s)"
-                             % (str(score), type(score), name))
+                scores = scores.item()
+        if not isinstance(scores, numbers.Number):
+            raise ValueError(error_msg % (scores, type(scores), scorer))
     return scores
 
 

@@ -1,27 +1,36 @@
 """Implement scorers for uplift modeling."""
 
-from sklearn.metrics.scorer import _BaseScorer
+from sklearn.metrics._scorer import _BaseScorer
 
 class _UpliftPredictScorer(_BaseScorer):
-    def __call__(self, estimator, X, y_true, trt, n_trt=None, sample_weight=None):
+    def _score(self, method_caller, estimator, X, y_true, trt, n_trt=None, sample_weight=None):
         """Evaluate predicted target values for X relative to y_true.
+
         Parameters
         ----------
+        method_caller : callable
+            Returns predictions given an estimator, method name, and other
+            arguments, potentially caching results.
+
         estimator : object
             Trained estimator to use for scoring. Must have a predict_proba
             method; the output of that is used to compute the score.
+
         X : array-like or sparse matrix
             Test data that will be fed to estimator.predict.
+
         y_true : array-like
             Gold standard target values for X.
+
         sample_weight : array-like, optional (default=None)
             Sample weights.
+
         Returns
         -------
         score : float
             Score function applied to prediction of estimator on X.
         """
-        y_pred = estimator.predict(X)
+        y_pred = method_caller(estimator, "predict", X)
         if sample_weight is not None:
             return self._sign * self._score_func(y_true, y_pred, trt, n_trt,
                                                  sample_weight=sample_weight,
@@ -30,25 +39,34 @@ class _UpliftPredictScorer(_BaseScorer):
             return self._sign * self._score_func(y_true, y_pred, trt, n_trt,
                                                  **self._kwargs)
 class _UpliftDecisionScorer(_BaseScorer):
-    def __call__(self, estimator, X, y_true, trt, n_trt=None, sample_weight=None):
+    def _score(self, method_caller, estimator, X, y_true, trt, n_trt=None, sample_weight=None):
         """Evaluate predicted treatment decisions for X relative to y_true.
+
         Parameters
         ----------
+        method_caller : callable
+            Returns predictions given an estimator, method name, and other
+            arguments, potentially caching results.
+
         estimator : object
             Trained estimator to use for scoring. Must have a predict_proba
             method; the output of that is used to compute the score.
+
         X : array-like or sparse matrix
             Test data that will be fed to estimator.predict.
+
         y_true : array-like
             Gold standard target values for X.
+
         sample_weight : array-like, optional (default=None)
             Sample weights.
+
         Returns
         -------
         score : float
             Score function applied to prediction of estimator on X.
         """
-        a = estimator.predict_action(X)
+        y_pred = method_caller(estimator, "predict_action", X)
         if sample_weight is not None:
             return self._sign * self._score_func(y_true, a, trt, n_trt,
                                                  sample_weight=sample_weight,
