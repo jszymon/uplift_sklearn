@@ -15,8 +15,8 @@ import csv
 import numpy as np
 
 from sklearn.datasets import get_data_home
-from sklearn.datasets._base import _fetch_remote
-from sklearn.datasets._base import RemoteFileMetadata
+from .base import _fetch_remote
+from .base import RemoteFileMetadata
 from sklearn.utils import Bunch
 import joblib
 from sklearn.utils import check_random_state
