@@ -480,6 +480,23 @@ class BaseSearchCV(MetaEstimatorMixin, BaseEstimator, metaclass=ABCMeta):
         return self.best_estimator_.predict(X)
 
     @if_delegate_has_method(delegate=('best_estimator_', 'estimator'))
+    def predict_action(self, X):
+        """Call predict_action on the estimator with the best found parameters.
+
+        Only available if ``refit=True`` and the underlying estimator supports
+        ``predict``.
+
+        Parameters
+        ----------
+        X : indexable, length n_samples
+            Must fulfill the input assumptions of the
+            underlying estimator.
+
+        """
+        self._check_is_fitted('predict_action')
+        return self.best_estimator_.predict_action(X)
+
+    @if_delegate_has_method(delegate=('best_estimator_', 'estimator'))
     def predict_proba(self, X):
         """Call predict_proba on the estimator with the best found parameters.
 

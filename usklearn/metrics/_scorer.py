@@ -66,7 +66,7 @@ class _UpliftDecisionScorer(_BaseScorer):
         score : float
             Score function applied to prediction of estimator on X.
         """
-        y_pred = method_caller(estimator, "predict_action", X)
+        a = method_caller(estimator, "predict_action", X)
         if sample_weight is not None:
             return self._sign * self._score_func(y_true, a, trt, n_trt,
                                                  sample_weight=sample_weight,
