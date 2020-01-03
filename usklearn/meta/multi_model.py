@@ -1,13 +1,17 @@
 """Uplift models based on multiple classification/regression models."""
 
 import numpy as np
-
+from scipy.linalg.lapack import get_lapack_funcs, _compute_lwork
+from scipy.linalg.misc import LinAlgError, _datacopied, LinAlgWarning
+from scipy import linalg
+from scipy.linalg import lstsq
+import scipy.sparse as sp
 from sklearn.base import BaseEstimator, clone
 from sklearn.utils import check_X_y, check_consistent_length
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model.base import LinearModel
 from sklearn.utils.metaestimators import _BaseComposition
-
+from scipy.linalg.decomp import _asarray_validated
 from ..base import UpliftRegressorMixin
 from ..utils import check_trt
 
@@ -44,6 +48,7 @@ class MultimodelUpliftRegressor(_BaseComposition, UpliftRegressorMixin):
         self.n_models_ = self.n_trt_ + 1
         self.models_ = self._check_base_estimator(self.n_models_)
         self.n_ = np.empty(self.n_models_, dtype=int)
+        #import pdb; pdb.set_trace()
         for i in range(self.n_models_):
             mi = self.models_[i][1]
             ind = (trt==i)
@@ -106,6 +111,7 @@ class MultimodelUpliftLinearRegressor(MultimodelUpliftRegressor, LinearModel):
         intercept = np.empty(self.n_trt_)
         for i in range(self.n_trt_):
             ui = self.models_[i+1][1].coef_ - c0
+            #print(c0)
             ii = self.models_[i+1][1].intercept_ - i0
             coef[i,:] = ui
             intercept[i] = ii
@@ -116,3 +122,5 @@ class MultimodelUpliftLinearRegressor(MultimodelUpliftRegressor, LinearModel):
         self.intercept_ = intercept
     def predict(self, X):
         return LinearModel.predict(self, X)
+
+
