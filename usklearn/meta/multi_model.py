@@ -48,6 +48,8 @@ class MultimodelUpliftRegressor(_BaseComposition, UpliftRegressorMixin):
         self.n_models_ = self.n_trt_ + 1
         self.models_ = self._check_base_estimator(self.n_models_)
         self.n_ = np.empty(self.n_models_, dtype=int)
+        self.p = X.shape[1]
+        self.alpha = np.empty(self.n_models_)
         #import pdb; pdb.set_trace()
         for i in range(self.n_models_):
             mi = self.models_[i][1]
@@ -56,6 +58,14 @@ class MultimodelUpliftRegressor(_BaseComposition, UpliftRegressorMixin):
             Xi = X[ind]
             yi = y[ind]
             mi.fit(Xi, yi)
+            resid =  yi-mi.predict(Xi)
+            sigma = np.sqrt(np.sum(resid**2)/(len(yi)-Xi.shape[1]))
+            n = Xi.shape[0]
+            Xi1 = np.column_stack((np.ones(n), Xi))
+            Xi_2 = Xi1.T@Xi1
+
+            coef_all_i = np.concatenate((np.array([mi.intercept_]),np.array(mi.coef_)))
+            self.alpha[i] = (1-(self.p-3)*sigma**2/((coef_all_i-np.mean(coef_all_i))@Xi_2@(coef_all_i-np.mean(coef_all_i))))
         return self
     def predict(self, X):
         y_control = self.models_[0][1].predict(X)
@@ -123,4 +133,30 @@ class MultimodelUpliftLinearRegressor(MultimodelUpliftRegressor, LinearModel):
     def predict(self, X):
         return LinearModel.predict(self, X)
 
-
+class MultimodelUpliftLinearRegressorJamesSeparate(MultimodelUpliftRegressor, LinearModel):
+    def fit(self, *args, **kwargs):
+        super().fit(*args, **kwargs)
+        self._set_coef()
+        return self
+    def _set_coef(self):
+        if not hasattr(self.models_[0][1], "coef_"):
+            raise RuntimeError("Base estimator for multi-linear"
+                                   " model must set coef_ attribute")
+        c0 = self.models_[0][1].coef_
+        i0 = self.models_[0][1].intercept_
+        alpha0 = self.alpha[0]
+        coef = np.empty((self.n_trt_, len(c0)))
+        intercept = np.empty(self.n_trt_)
+        for i in range(self.n_trt_):           
+            ui = self.alpha[i+1]*self.models_[i+1][1].coef_ - alpha0*c0
+            #print(c0)
+            ii = self.alpha[i+1]*self.models_[i+1][1].intercept_ - alpha0*i0
+            coef[i,:] = ui
+            intercept[i] = ii
+        if self.n_trt_ == 1:
+            coef = np.squeeze(coef)
+            intercept = np.squeeze(intercept)
+        self.coef_ = coef
+        self.intercept_ = intercept
+    def predict(self, X):
+        return LinearModel.predict(self, X)
