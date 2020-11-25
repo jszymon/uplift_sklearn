@@ -49,7 +49,7 @@ class MultimodelUpliftRegressor(_BaseComposition, UpliftRegressorMixin):
         self.models_ = self._check_base_estimator(self.n_models_)
         self.n_ = np.empty(self.n_models_, dtype=int)
         self.p = X.shape[1]
-        self.alpha = np.empty(self.n_models_)
+        self.sigma = np.empty(self.n_models_)
         #import pdb; pdb.set_trace()
         for i in range(self.n_models_):
             mi = self.models_[i][1]
@@ -59,13 +59,14 @@ class MultimodelUpliftRegressor(_BaseComposition, UpliftRegressorMixin):
             yi = y[ind]
             mi.fit(Xi, yi)
             resid =  yi-mi.predict(Xi)
-            sigma = np.sqrt(np.sum(resid**2)/(len(yi)-Xi.shape[1]))
-            n = Xi.shape[0]
-            Xi1 = np.column_stack((np.ones(n), Xi))
+            self.sigma[i] = np.sqrt(np.sum(resid**2)/(len(yi)-Xi.shape[1]))
+            Xi1 = np.column_stack((np.ones(self.n_[i]), Xi))
             Xi_2 = Xi1.T@Xi1
-
-            coef_all_i = np.concatenate((np.array([mi.intercept_]),np.array(mi.coef_)))
-            self.alpha[i] = (1-(self.p-3)*sigma**2/((coef_all_i-np.mean(coef_all_i))@Xi_2@(coef_all_i-np.mean(coef_all_i))))
+            if(i==0):
+                X_2 = [Xi_2]
+            else:
+                X_2.append(Xi_2)
+        self.X_2 = np.array(X_2)
         return self
     def predict(self, X):
         y_control = self.models_[0][1].predict(X)
@@ -144,13 +145,19 @@ class MultimodelUpliftLinearRegressorJamesSeparate(MultimodelUpliftRegressor, Li
                                    " model must set coef_ attribute")
         c0 = self.models_[0][1].coef_
         i0 = self.models_[0][1].intercept_
-        alpha0 = self.alpha[0]
+        coef_all0 = np.concatenate((np.array([i0]),c0))
+        alpha0 = (1-(self.p-3)*self.sigma[0]**2/((coef_all0-np.mean(coef_all0))@self.X_2[0]@(coef_all0-np.mean(coef_all0))))
+        
         coef = np.empty((self.n_trt_, len(c0)))
         intercept = np.empty(self.n_trt_)
-        for i in range(self.n_trt_):           
-            ui = self.alpha[i+1]*self.models_[i+1][1].coef_ - alpha0*c0
+        for i in range(self.n_trt_):
+            ci = self.models_[i+1][1].coef_
+            ii2 = self.models_[i+1][1].intercept_
+            coef_alli = np.concatenate((np.array([ii2]),ci))
+            alphai = (1-(self.p-3)*self.sigma[i+1]**2/((coef_alli-np.mean(coef_alli))@self.X_2[i+1]@(coef_alli-np.mean(coef_alli))))
+            ui = alphai*ci - alpha0*c0
             #print(c0)
-            ii = self.alpha[i+1]*self.models_[i+1][1].intercept_ - alpha0*i0
+            ii = alphai*ii2 - alpha0*i0
             coef[i,:] = ui
             intercept[i] = ii
         if self.n_trt_ == 1:
@@ -160,3 +167,121 @@ class MultimodelUpliftLinearRegressorJamesSeparate(MultimodelUpliftRegressor, Li
         self.intercept_ = intercept
     def predict(self, X):
         return LinearModel.predict(self, X)
+
+class MultimodelUpliftLinearRegressorJamesU(MultimodelUpliftRegressor, LinearModel):
+    def fit(self, *args, **kwargs):
+        super().fit(*args, **kwargs)
+        self._set_coef()
+        return self
+    def _set_coef(self):
+        if not hasattr(self.models_[0][1], "coef_"):
+            raise RuntimeError("Base estimator for multi-linear"
+                                   " model must set coef_ attribute")
+        c0 = self.models_[0][1].coef_
+        i0 = self.models_[0][1].intercept_
+
+        
+        coef = np.empty((self.n_trt_, len(c0)))
+        intercept = np.empty(self.n_trt_)
+        for i in range(self.n_trt_):
+            ci = self.models_[i+1][1].coef_
+            ii2 = self.models_[i+1][1].intercept_
+            ui = ci - c0
+            #print(c0)
+            ii = ii2 - i0
+            coef_all = np.concatenate((np.array([ii]),ui))
+            alpha = (1-(self.p-3)/((coef_all -np.mean(coef_all))@np.linalg.pinv(self.sigma[i+1]**2*np.linalg.pinv(self.X_2[i+1])+self.sigma[0]**2*np.linalg.pinv(self.X_2[0]))@(coef_all-np.mean(coef_all))))        
+            coef[i,:] = alpha*ui
+            intercept[i] = alpha*ii
+        if self.n_trt_ == 1:
+            coef = np.squeeze(coef)
+            intercept = np.squeeze(intercept)
+        self.coef_ = coef
+        self.intercept_ = intercept
+    def predict(self, X):
+        return LinearModel.predict(self, X)
+
+
+class MultimodelUpliftLinearRegressorMSESeparate(MultimodelUpliftRegressor, LinearModel):
+    def fit(self, *args, **kwargs):
+        super().fit(*args, **kwargs)
+        self._set_coef()
+        return self
+    def _set_coef(self):
+        if not hasattr(self.models_[0][1], "coef_"):
+            raise RuntimeError("Base estimator for multi-linear"
+                                   " model must set coef_ attribute")
+        c0 = self.models_[0][1].coef_
+        i0 = self.models_[0][1].intercept_
+        var_beta0 = self.sigma[0]**2*np.linalg.pinv(self.X_2[0])
+        coef_all0 = np.concatenate((np.array([i0]),c0))
+        W0 = self.X_2[0]/self.X_2[0].shape[0]
+        alpha0 = coef_all0.T@W0@coef_all0/(coef_all0.T@W0@coef_all0+np.trace(W0@var_beta0))
+        coef = np.empty((self.n_trt_, len(c0)))
+        intercept = np.empty(self.n_trt_)
+        for i in range(self.n_trt_):
+            ci = self.models_[i+1][1].coef_
+            ii2 = self.models_[i+1][1].intercept_
+            var_betai = self.sigma[i+1]**2*np.linalg.pinv(self.X_2[i+1])
+            coef_alli = np.concatenate((np.array([ii2]),ci))
+            Wi = self.X_2[i+1]/self.X_2[i+1].shape[0]
+            alphai = coef_alli.T@Wi@coef_alli/(coef_alli.T@Wi@coef_alli+np.trace(Wi@var_betai))
+            ui = alphai*ci - alpha0*c0
+            #print(c0)
+            ii = alphai*ii2 - alpha0*i0
+            coef[i,:] = ui
+            intercept[i] = ii
+        if self.n_trt_ == 1:
+            coef = np.squeeze(coef)
+            intercept = np.squeeze(intercept)
+        self.coef_ = coef
+        self.intercept_ = intercept
+    def predict(self, X):
+        return LinearModel.predict(self, X)
+    
+    
+class MultimodelUpliftLinearRegressorMSEU(MultimodelUpliftRegressor, LinearModel):
+    def fit(self, *args, **kwargs):
+        super().fit(*args, **kwargs)
+        self._set_coef()
+        return self
+    def _set_coef(self):
+        if not hasattr(self.models_[0][1], "coef_"):
+            raise RuntimeError("Base estimator for multi-linear"
+                                   " model must set coef_ attribute")
+        c0 = self.models_[0][1].coef_
+        i0 = self.models_[0][1].intercept_
+        var_beta0 = self.sigma[0]**2*np.linalg.pinv(self.X_2[0])
+        coef_all0 = np.concatenate((np.array([i0]),c0))
+        
+        coef = np.empty((self.n_trt_, len(c0)))
+        intercept = np.empty(self.n_trt_)
+        for i in range(self.n_trt_):
+            ci = self.models_[i+1][1].coef_
+            ii2 = self.models_[i+1][1].intercept_
+            var_betai = self.sigma[i+1]**2*np.linalg.pinv(self.X_2[i+1])
+            coef_alli = np.concatenate((np.array([ii2]),ci))
+            ui = ci - c0
+            #print(c0)
+            ii = ii2 - i0
+            coef_all = np.concatenate((np.array([ii]),ui))
+            W = (self.X_2[0]+self.X_2[i+1])/(self.n_[0]+self.n_[i+1])
+            A = np.column_stack((np.vstack((coef_alli.T@W@coef_alli+np.trace(W@var_betai),-coef_all0.T@W@coef_alli)),
+                         np.vstack((-coef_alli.T@W@coef_all0,coef_all0.T@W@coef_all0+np.trace(W@var_beta0)))))
+    
+            b = np.array([coef_alli.T@W@coef_all,-coef_all0.T@W@coef_all]) 
+            alphas = np.linalg.solve(A,b)
+    
+            alpha_t = alphas[0]
+            alpha_c = alphas[1]
+            
+            coef[i,:] = alpha_t*ci - alpha_c*c0
+            intercept[i] = alpha_t*ii2 - alpha_c*i0
+        if self.n_trt_ == 1:
+            coef = np.squeeze(coef)
+            intercept = np.squeeze(intercept)
+        self.coef_ = coef
+        self.intercept_ = intercept
+    def predict(self, X):
+        return LinearModel.predict(self, X)    
+    
