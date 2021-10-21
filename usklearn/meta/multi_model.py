@@ -58,6 +58,7 @@ class MultimodelUpliftRegressor(_BaseComposition, UpliftRegressorMixin):
             Xi = X[ind]
             yi = y[ind]
             mi.fit(Xi, yi)
+            #print(mi.coef_)
             resid =  yi-mi.predict(Xi)
             self.sigma[i] = np.sqrt(np.sum(resid**2)/(len(yi)-Xi.shape[1]))
             Xi1 = np.column_stack((np.ones(self.n_[i]), Xi))
