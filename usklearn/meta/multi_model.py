@@ -192,8 +192,8 @@ class MultimodelUpliftLinearRegressorJamesU(MultimodelUpliftRegressor, LinearMod
             ii = ii2 - i0
             coef_all = np.concatenate((np.array([ii]),ui))
             alpha = (1-(self.p-3)/((coef_all -np.mean(coef_all))@np.linalg.pinv(self.sigma[i+1]**2*np.linalg.pinv(self.X_2[i+1])+self.sigma[0]**2*np.linalg.pinv(self.X_2[0]))@(coef_all-np.mean(coef_all))))        
-            coef[i,:] = alpha*ui
-            intercept[i] = alpha*ii
+            coef[i,:] = alpha*(ui-np.mean(ui))+np.mean(ui)
+            intercept[i] = alpha*(ii-np.mean(ii))+np.mean(ii)
         if self.n_trt_ == 1:
             coef = np.squeeze(coef)
             intercept = np.squeeze(intercept)
@@ -271,7 +271,7 @@ class MultimodelUpliftLinearRegressorMSEU(MultimodelUpliftRegressor, LinearModel
                          np.vstack((-coef_alli.T@W@coef_all0,coef_all0.T@W@coef_all0+np.trace(W@var_beta0)))))
     
             b = np.array([coef_alli.T@W@coef_all,-coef_all0.T@W@coef_all]) 
-            alphas = np.linalg.solve(A,b)
+            alphas = np.linalg.pinv(A)@b
     
             alpha_t = alphas[0]
             alpha_c = alphas[1]
