@@ -40,6 +40,7 @@ from sklearn.model_selection._split import check_cv
 from sklearn.preprocessing import LabelEncoder
 
 from ..utils import check_trt
+from ..utils import MultiArray
 
 __all__ = ['cross_validate', 'cross_val_score', 'cross_val_predict',
            'permutation_test_score', 'learning_curve', 'validation_curve']
