@@ -8,7 +8,7 @@ class UpliftRegressorMixin(object):
     _estimator_type = "regressor"
     _uplift_model = True
 
-    def score(self, X, y, trt, sample_weight=None):
+    def score(self, X, y, trt, n_trt=None, sample_weight=None):
         return -e_sate(y, self.predict(X), trt, n_trt=self.n_trt_)
     def predict_action(self, X):
         """Predict most beneficial action."""
