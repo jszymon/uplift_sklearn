@@ -37,7 +37,11 @@ from sklearn.metrics import check_scoring
 from sklearn.metrics._scorer import _check_multimetric_scoring, _MultimetricScorer
 from sklearn.exceptions import FitFailedWarning
 from sklearn.model_selection._split import check_cv
+from sklearn.model_selection import cross_validate as _sklearn_cross_validate
 from sklearn.preprocessing import LabelEncoder
+
+from sklearn.utils.metaestimators import _BaseComposition
+
 
 from ..utils import check_trt
 from ..utils import MultiArray
@@ -45,8 +49,60 @@ from ..utils import MultiArray
 __all__ = ['cross_validate', 'cross_val_score', 'cross_val_predict',
            'permutation_test_score', 'learning_curve', 'validation_curve']
 
+class _WrappedUpliftEstimator(_BaseComposition):
+    """Wrap upift estimator inside a sklearn estimator interface."""
+    _uplift_model = True
+    def __init__(self, base_estimator):
+        self.base_estimator = base_estimator
+        self._estimator_type = base_estimator._estimator_type
+    def extract_treatment_arrays(self, X):
+        real_X = X.main_array
+        y = X.array_dict["y"]
+        trt = X.array_dict["trt"]
+        n_trt = X.scalar_dict["n_trt"]
+        return real_X, y, trt, n_trt
+    def fit(self, X, y, **kwargs):
+        real_X, y, trt, n_trt = self.extract_treatment_arrays(X)
+        return self.base_estimator.fit(real_X, y, trt, n_trt, **kwargs)
+    def score(self, X, y, **kwargs):
+        real_X, y, trt, n_trt = self.extract_treatment_arrays(X)
+        return self.base_estimator.score(real_X, y, trt, n_trt, **kwargs)
+    def get_params(self, deep=True):
+        if hasattr(self.base_estimator, "fit"):
+            return super().get_params(deep=deep)
+        return self._get_params('base_estimator', deep=deep)
+    def set_params(self, **kwargs):
+        if hasattr(self.base_estimator, "fit"):
+            return super().set_params(**kwargs)
+        else:
+            self._set_params('base_estimator', **kwargs)
+        return self
+
 
 def cross_validate(estimator, X, y, trt, n_trt=None, groups=None, scoring=None, cv=None,
+                       *args, **kwargs):
+    X, y, trt, groups = indexable(X, y, trt, groups)
+
+    trt, n_trt = check_trt(trt, n_trt)
+    # by default, always stratify on treatment and class if available
+    if is_classifier(estimator):
+        le = LabelEncoder()
+        y_stratify = le.fit_transform(y)
+        y_stratify = y_stratify * n_trt + trt
+    else:
+        y_stratify = trt
+    # multiarray to pass additional data
+    # y_stratify is used only for stratification
+    Xm = MultiArray(X, array_dict={"y":y, "trt":trt}, scalar_dict={"n_trt":n_trt})
+    # wrapped estimator
+    wrapped_est = _WrappedUpliftEstimator(estimator)
+    # wrapped scoring
+    # check_cv explicitly to stratify on treatment even for regression
+    # below, classifier=True ensures stratification
+    cv = check_cv(cv, y_stratify, classifier=True)
+    return _sklearn_cross_validate(wrapped_est, Xm, y_stratify, groups, scoring, cv, *args, **kwargs)
+
+def _cross_validate(estimator, X, y, trt, n_trt=None, groups=None, scoring=None, cv=None,
                    n_jobs=None, verbose=0, fit_params=None,
                    pre_dispatch='2*n_jobs', return_train_score=False,
                    return_estimator=False, error_score=np.nan):
