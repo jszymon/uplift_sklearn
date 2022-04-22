@@ -1,9 +1,13 @@
 """Implement scorers for uplift modeling."""
 
-from sklearn.metrics._scorer import _BaseScorer
+class _BaseUpliftScorer:
+    def __init__(self, score_func, sign, kwargs):
+        self._kwargs = kwargs
+        self._score_func = score_func
+        self._sign = sign
 
-class _UpliftPredictScorer(_BaseScorer):
-    def _score(self, method_caller, estimator, X, y_true, trt, n_trt=None, sample_weight=None):
+class _UpliftPredictScorer(_BaseUpliftScorer):
+    def __call__(self, estimator, X, y_true, trt, n_trt=None, sample_weight=None):
         """Evaluate predicted target values for X relative to y_true.
 
         Parameters
@@ -30,7 +34,7 @@ class _UpliftPredictScorer(_BaseScorer):
         score : float
             Score function applied to prediction of estimator on X.
         """
-        y_pred = method_caller(estimator, "predict", X)
+        y_pred = estimator.predict(X)
         if sample_weight is not None:
             return self._sign * self._score_func(y_true, y_pred, trt, n_trt,
                                                  sample_weight=sample_weight,
@@ -38,8 +42,8 @@ class _UpliftPredictScorer(_BaseScorer):
         else:
             return self._sign * self._score_func(y_true, y_pred, trt, n_trt,
                                                  **self._kwargs)
-class _UpliftDecisionScorer(_BaseScorer):
-    def _score(self, method_caller, estimator, X, y_true, trt, n_trt=None, sample_weight=None):
+class _UpliftDecisionScorer(_BaseUpliftScorer):
+    def _score(self, estimator, X, y_true, trt, n_trt=None, sample_weight=None):
         """Evaluate predicted treatment decisions for X relative to y_true.
 
         Parameters
@@ -66,7 +70,7 @@ class _UpliftDecisionScorer(_BaseScorer):
         score : float
             Score function applied to prediction of estimator on X.
         """
-        a = method_caller(estimator, "predict_action", X)
+        a = estimator.predict_action(X)
         if sample_weight is not None:
             return self._sign * self._score_func(y_true, a, trt, n_trt,
                                                  sample_weight=sample_weight,
