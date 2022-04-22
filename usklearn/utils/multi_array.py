@@ -25,8 +25,6 @@ class MultiArray:
             scalar_dict = dict()
         self.scalar_dict = scalar_dict
         self.shape = self.main_array.shape
-    def __array__(self, dtype=None):
-        return self
     def __getitem__(self, idx):
         new_dict = {k:self.array_dict[k][idx] for k in self.array_dict}
         return MultiArray(self.main_array[idx], new_dict, self.scalar_dict)
