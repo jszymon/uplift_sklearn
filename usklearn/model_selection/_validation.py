@@ -100,7 +100,7 @@ def cross_validate(estimator, X, y, trt, n_trt=None, groups=None, scoring=None, 
     # check_cv explicitly to stratify on treatment even for regression
     # below, classifier=True ensures stratification
     cv = check_cv(cv, y_stratify, classifier=True)
-    return _sklearn_cross_validate(wrapped_est, Xm, y_stratify, groups, scoring, cv, *args, **kwargs)
+    return _sklearn_cross_validate(wrapped_est, Xm, y_stratify, groups=groups, scoring=scoring, cv=cv, *args, **kwargs)
 
 def _cross_validate(estimator, X, y, trt, n_trt=None, groups=None, scoring=None, cv=None,
                    n_jobs=None, verbose=0, fit_params=None,
