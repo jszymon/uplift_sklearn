@@ -64,9 +64,9 @@ class _WrappedUpliftEstimator(_BaseComposition):
     def fit(self, X, y, **kwargs):
         real_X, y, trt, n_trt = self.extract_treatment_arrays(X)
         return self.base_estimator.fit(real_X, y, trt, n_trt, **kwargs)
-    def score(self, X, y, **kwargs):
+    def score(self, X, y, *args, **kwargs):
         real_X, y, trt, n_trt = self.extract_treatment_arrays(X)
-        return self.base_estimator.score(real_X, y, trt, n_trt, **kwargs)
+        return self.base_estimator.score(real_X, y, trt, n_trt, *args, **kwargs)
     def get_params(self, deep=True):
         if hasattr(self.base_estimator, "fit"):
             return super().get_params(deep=deep)
@@ -78,7 +78,21 @@ class _WrappedUpliftEstimator(_BaseComposition):
             self._set_params('base_estimator', **kwargs)
         return self
 
+class _WrappedScoring:
+    """Wrap uplift scoring into a sklearn scoring interface."""
+    def __init__(self, uplift_scoring):
+        self.uplift_scoring = uplift_scoring
+    def extract_treatment_arrays(self, X):
+        real_X = X.main_array
+        y = X.array_dict["y"]
+        trt = X.array_dict["trt"]
+        n_trt = X.scalar_dict["n_trt"]
+        return real_X, y, trt, n_trt
+    def __call__(self, estimator, X, y, *args, **kwargs):
+        real_X, y, trt, n_trt = self.extract_treatment_arrays(X)
+        return self.uplift_scoring(estimator.base_estimator, real_X, y, trt, n_trt, *args, **kwargs)
 
+        
 def cross_validate(estimator, X, y, trt, n_trt=None, groups=None, scoring=None, cv=None,
                        *args, **kwargs):
     X, y, trt, groups = indexable(X, y, trt, groups)
@@ -98,9 +112,11 @@ def cross_validate(estimator, X, y, trt, n_trt=None, groups=None, scoring=None, 
     wrapped_est = _WrappedUpliftEstimator(estimator)
     # wrapped scoring
     # check_cv explicitly to stratify on treatment even for regression
+    scorers, _ = _check_multimetric_scoring(estimator, scoring=scoring)
+    wrapped_scorers = {name:_WrappedScoring(scoring) for name, scoring in scorers.items()}
     # below, classifier=True ensures stratification
     cv = check_cv(cv, y_stratify, classifier=True)
-    return _sklearn_cross_validate(wrapped_est, Xm, y_stratify, groups=groups, scoring=scoring, cv=cv, *args, **kwargs)
+    return _sklearn_cross_validate(wrapped_est, Xm, y_stratify, groups=groups, scoring=wrapped_scorers, cv=cv, *args, **kwargs)
 
 def _cross_validate(estimator, X, y, trt, n_trt=None, groups=None, scoring=None, cv=None,
                    n_jobs=None, verbose=0, fit_params=None,
