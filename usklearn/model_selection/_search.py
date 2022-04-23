@@ -28,7 +28,7 @@ from scipy.stats import rankdata
 from sklearn.base import BaseEstimator, is_classifier, clone
 from sklearn.base import MetaEstimatorMixin
 from sklearn.model_selection._split import check_cv
-from ._validation import _fit_and_score
+#from ._validation import _fit_and_score
 from sklearn.model_selection._validation import _aggregate_score_dicts
 from sklearn.exceptions import NotFittedError
 from joblib import Parallel, delayed
@@ -44,6 +44,52 @@ from sklearn.metrics import check_scoring
 
 __all__ = ['GridSearchCV', 'ParameterGrid', 'fit_grid_point',
            'ParameterSampler', 'RandomizedSearchCV']
+
+from collections.abc import Mapping, Sequence, Iterable
+
+from sklearn.model_selection import GridSearchCV as _sklearn_GridSearchCV
+
+from ..utils import check_trt
+from ..utils import MultiArray
+
+from ._validation import _WrappedUpliftEstimator, _WrappedScoring
+
+
+class GridSearchCV(_sklearn_GridSearchCV):
+    def __init__(self, estimator, param_grid, *, scoring=None, cv=None, **kwargs):
+        wrapped_est = _WrappedUpliftEstimator(estimator)
+        scoring = check_scoring(estimator, scoring)
+        wrapped_scoring = _WrappedScoring(scoring)
+        # TODO: multimetric scoring
+        #scorers, _ = _check_multimetric_scoring(estimator, scoring=scoring)
+        #wrapped_scorers = {name:_WrappedScoring(scoring) for name, scoring in scorers.items()}
+        # TODO: fix cv
+        # fix param_grid for wrapped uplift estimator
+        if isinstance(param_grid, Mapping):
+            param_grid = [param_grid]
+        new_param_grid = []
+        for grid in param_grid:
+            new_grid = {"base_estimator__" + key:value for key, value in grid.items()}
+            new_param_grid.append(new_grid)
+        super().__init__(estimator=wrapped_est, param_grid=new_param_grid, scoring=wrapped_scoring, **kwargs)
+    def fit(self, X, y, trt, n_trt=None, *, groups=None, **fit_params):
+        X, y, trt, groups = indexable(X, y, trt, groups)
+
+        trt, n_trt = check_trt(trt, n_trt)
+        # by default, always stratify on treatment and class if available
+        if is_classifier(self.estimator.base_estimator):
+            le = LabelEncoder()
+            y_stratify = le.fit_transform(y)
+            y_stratify = y_stratify * n_trt + trt
+        else:
+            y_stratify = trt
+        # multiarray to pass additional data
+        # y_stratify is used only for stratification
+        Xm = MultiArray(X, array_dict={"y":y, "trt":trt}, scalar_dict={"n_trt":n_trt})
+        super().fit(Xm, y_stratify, groups, **fit_params)
+    def score(self, X, y, trt, n_trt=None):
+        Xm = MultiArray(X, array_dict={"y":y, "trt":trt}, scalar_dict={"n_trt":n_trt})
+        return super().score(Xm, y)
 
 
 class ParameterGrid:
@@ -871,7 +917,7 @@ class BaseSearchCV(MetaEstimatorMixin, BaseEstimator, metaclass=ABCMeta):
         return results
 
 
-class GridSearchCV(BaseSearchCV):
+class _GridSearchCV(BaseSearchCV):
     """Exhaustive search over specified parameter values for an estimator.
 
     Important members are fit, predict.
