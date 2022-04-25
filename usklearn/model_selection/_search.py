@@ -55,24 +55,46 @@ from ..utils import MultiArray
 from ._validation import _WrappedUpliftEstimator, _WrappedScoring
 
 
-class GridSearchCV(_sklearn_GridSearchCV):
-    def __init__(self, estimator, param_grid, *, scoring=None, cv=None, **kwargs):
-        wrapped_est = _WrappedUpliftEstimator(estimator)
-        scoring = check_scoring(estimator, scoring)
+class GridSearchCV(BaseEstimator):
+    def __init__(self, estimator, param_grid, *, scoring=None,
+                 n_jobs=None, refit=True, cv=None, verbose=0,
+                 pre_dispatch='2*n_jobs', error_score=np.nan,
+                 return_train_score=False):
+        self.estimator = estimator
+        self.param_grid = param_grid
+        self.scoring = scoring
+        self.n_jobs = n_jobs
+        self.refit = refit
+        self.cv = cv
+        self.verbose = verbose
+        self.pre_dispatch = pre_dispatch
+        self.error_score = error_score
+        self.return_train_score = return_train_score
+
+    @property
+    def _estimator_type(self):
+        return self.estimator._estimator_type
+
+    def fit(self, X, y, trt, n_trt=None, *, groups=None, **fit_params):
+        wrapped_est = _WrappedUpliftEstimator(self.estimator)
+        scoring = check_scoring(self.estimator, self.scoring)
         wrapped_scoring = _WrappedScoring(scoring)
         # TODO: multimetric scoring
         #scorers, _ = _check_multimetric_scoring(estimator, scoring=scoring)
         #wrapped_scorers = {name:_WrappedScoring(scoring) for name, scoring in scorers.items()}
         # TODO: fix cv
+        cv = self.cv
         # fix param_grid for wrapped uplift estimator
-        if isinstance(param_grid, Mapping):
+        param_grid = self.param_grid
+        if isinstance(self.param_grid, Mapping):
             param_grid = [param_grid]
         new_param_grid = []
         for grid in param_grid:
             new_grid = {"base_estimator__" + key:value for key, value in grid.items()}
             new_param_grid.append(new_grid)
-        super().__init__(estimator=wrapped_est, param_grid=new_param_grid, scoring=wrapped_scoring, **kwargs)
-    def fit(self, X, y, trt, n_trt=None, *, groups=None, **fit_params):
+        self.grid_search_ = _sklearn_GridSearchCV(estimator=wrapped_est, param_grid=new_param_grid, scoring=wrapped_scoring,
+                                                  cv=cv)
+
         X, y, trt, groups = indexable(X, y, trt, groups)
 
         trt, n_trt = check_trt(trt, n_trt)
@@ -86,11 +108,15 @@ class GridSearchCV(_sklearn_GridSearchCV):
         # multiarray to pass additional data
         # y_stratify is used only for stratification
         Xm = MultiArray(X, array_dict={"y":y, "trt":trt}, scalar_dict={"n_trt":n_trt})
-        super().fit(Xm, y_stratify, groups, **fit_params)
+        self.grid_search_.fit(Xm, y_stratify, groups=groups, **fit_params)
     def score(self, X, y, trt, n_trt=None):
         Xm = MultiArray(X, array_dict={"y":y, "trt":trt}, scalar_dict={"n_trt":n_trt})
-        return super().score(Xm, y)
-
+        return self.grid_search_.score(Xm, y)
+    def __getattr__(self, arg):
+        """Delegate to real grid search."""
+        if "grid_search_" in self.__dict__:
+            return getattr(self.grid_search_, arg)
+        raise AttributeError(arg)
 
 class ParameterGrid:
     """Grid of parameters with a discrete number of values for each.
