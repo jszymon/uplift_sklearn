@@ -11,6 +11,7 @@ import numpy as np
 
 from sklearn.base import is_classifier
 from sklearn.utils import indexable
+from sklearn.utils.metaestimators import if_delegate_has_method
 from sklearn.metrics import check_scoring
 from sklearn.metrics._scorer import _check_multimetric_scoring
 from sklearn.model_selection import check_cv
@@ -30,7 +31,9 @@ class _WrappedUpliftEstimator(_BaseComposition):
     _uplift_model = True
     def __init__(self, base_estimator):
         self.base_estimator = base_estimator
-        self._estimator_type = base_estimator._estimator_type
+    @property
+    def _estimator_type(self):
+        return self.base_estimator._estimator_type
     def extract_treatment_arrays(self, X):
         real_X = X.main_array
         y = X.array_dict["y"]
@@ -43,6 +46,27 @@ class _WrappedUpliftEstimator(_BaseComposition):
     def score(self, X, y, *args, **kwargs):
         real_X, y, trt, n_trt = self.extract_treatment_arrays(X)
         return self.base_estimator.score(real_X, y, trt, n_trt, *args, **kwargs)
+    @if_delegate_has_method(delegate="base_estimator")
+    def predict(self, X):
+        return self.base_estimator.predict(X)
+    @if_delegate_has_method(delegate="base_estimator")
+    def predict_action(self, X):
+        return self.base_estimator.predict_action(X)
+    @if_delegate_has_method(delegate="base_estimator")
+    def predict_proba(self, X):
+        return self.base_estimator.predict_proba(X)
+    @if_delegate_has_method(delegate="base_estimator")
+    def predict_log_proba(self, X):
+        return self.base_estimator.predict_log_proba(X)
+    @if_delegate_has_method(delegate="base_estimator")
+    def decision_function(self, X):
+        return self.base_estimator.decision_function(X)
+    @if_delegate_has_method(delegate="base_estimator")
+    def transform(self, X):
+        return self.base_estimator.transform(X)
+    @if_delegate_has_method(delegate="base_estimator")
+    def inverse_transform(self, Xt):
+        return self.base_estimator.inverse_transform(Xt)
     def get_params(self, deep=True):
         if hasattr(self.base_estimator, "fit"):
             return super().get_params(deep=deep)
