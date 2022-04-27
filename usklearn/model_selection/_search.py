@@ -28,7 +28,6 @@ from scipy.stats import rankdata
 from sklearn.base import BaseEstimator, is_classifier, clone
 from sklearn.base import MetaEstimatorMixin
 from sklearn.model_selection._split import check_cv
-#from ._validation import _fit_and_score
 from sklearn.model_selection._validation import _aggregate_score_dicts
 from sklearn.exceptions import NotFittedError
 from joblib import Parallel, delayed
@@ -40,6 +39,8 @@ from sklearn.utils.metaestimators import if_delegate_has_method
 from sklearn.metrics._scorer import _check_multimetric_scoring
 from sklearn.metrics import check_scoring
 #from sklearn.model_selection._search import _check_param_grid
+
+from ._validation import uplift_check_cv
 
 
 __all__ = ['GridSearchCV', 'ParameterGrid', 'fit_grid_point',
@@ -76,6 +77,9 @@ class GridSearchCV(BaseEstimator):
         return self.estimator._estimator_type
 
     def fit(self, X, y, trt, n_trt=None, *, groups=None, **fit_params):
+        X, y, trt, groups = indexable(X, y, trt, groups)
+        trt, n_trt = check_trt(trt, n_trt)
+
         wrapped_est = _WrappedUpliftEstimator(self.estimator)
         scoring = check_scoring(self.estimator, self.scoring)
         wrapped_scoring = _WrappedScoring(scoring)
@@ -83,7 +87,7 @@ class GridSearchCV(BaseEstimator):
         #scorers, _ = _check_multimetric_scoring(estimator, scoring=scoring)
         #wrapped_scorers = {name:_WrappedScoring(scoring) for name, scoring in scorers.items()}
         # TODO: fix cv
-        cv = self.cv
+        cv, y_stratify = uplift_check_cv(self.cv, y, trt, n_trt, classifier=is_classifier(self.estimator))
         # fix param_grid for wrapped uplift estimator
         param_grid = self.param_grid
         if isinstance(self.param_grid, Mapping):
@@ -95,16 +99,6 @@ class GridSearchCV(BaseEstimator):
         self.grid_search_ = _sklearn_GridSearchCV(estimator=wrapped_est, param_grid=new_param_grid, scoring=wrapped_scoring,
                                                   cv=cv)
 
-        X, y, trt, groups = indexable(X, y, trt, groups)
-
-        trt, n_trt = check_trt(trt, n_trt)
-        # by default, always stratify on treatment and class if available
-        if is_classifier(self.estimator.base_estimator):
-            le = LabelEncoder()
-            y_stratify = le.fit_transform(y)
-            y_stratify = y_stratify * n_trt + trt
-        else:
-            y_stratify = trt
         # multiarray to pass additional data
         # y_stratify is used only for stratification
         Xm = MultiArray(X, array_dict={"y":y, "trt":trt}, scalar_dict={"n_trt":n_trt})
