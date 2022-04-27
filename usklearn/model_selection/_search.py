@@ -97,7 +97,9 @@ class GridSearchCV(BaseEstimator):
             new_grid = {"base_estimator__" + key:value for key, value in grid.items()}
             new_param_grid.append(new_grid)
         self.grid_search_ = _sklearn_GridSearchCV(estimator=wrapped_est, param_grid=new_param_grid, scoring=wrapped_scoring,
-                                                  cv=cv)
+                                                  cv=cv, n_jobs=self.n_jobs, refit=self.refit, verbose=self.verbose,
+                                                  pre_dispatch=self.pre_dispatch, error_score=self.error_score,
+                                                      return_train_score=self.return_train_score)
 
         # multiarray to pass additional data
         # y_stratify is used only for stratification
