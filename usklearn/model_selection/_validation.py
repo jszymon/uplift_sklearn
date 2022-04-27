@@ -26,6 +26,14 @@ from ..utils import MultiArray
 __all__ = ['cross_validate', 'cross_val_score', 'cross_val_predict',
            'permutation_test_score', 'learning_curve', 'validation_curve']
 
+def _extract_uplift_arrays(X):
+        """Extract data for uplift training from MultiArray."""
+        real_X = X.main_array
+        y = X.array_dict["y"]
+        trt = X.array_dict["trt"]
+        n_trt = X.scalar_dict["n_trt"]
+        return real_X, y, trt, n_trt
+
 class _WrappedUpliftEstimator(_BaseComposition):
     """Wrap upift estimator inside a sklearn estimator interface."""
     _uplift_model = True
@@ -34,17 +42,11 @@ class _WrappedUpliftEstimator(_BaseComposition):
     @property
     def _estimator_type(self):
         return self.base_estimator._estimator_type
-    def extract_treatment_arrays(self, X):
-        real_X = X.main_array
-        y = X.array_dict["y"]
-        trt = X.array_dict["trt"]
-        n_trt = X.scalar_dict["n_trt"]
-        return real_X, y, trt, n_trt
     def fit(self, X, y, **kwargs):
-        real_X, y, trt, n_trt = self.extract_treatment_arrays(X)
+        real_X, y, trt, n_trt = _extract_uplift_arrays(X)
         return self.base_estimator.fit(real_X, y, trt, n_trt, **kwargs)
     def score(self, X, y, *args, **kwargs):
-        real_X, y, trt, n_trt = self.extract_treatment_arrays(X)
+        real_X, y, trt, n_trt = _extract_uplift_arrays(X)
         return self.base_estimator.score(real_X, y, trt, n_trt, *args, **kwargs)
     @if_delegate_has_method(delegate="base_estimator")
     def predict(self, X):
@@ -82,14 +84,8 @@ class _WrappedScoring:
     """Wrap uplift scoring into a sklearn scoring interface."""
     def __init__(self, uplift_scoring):
         self.uplift_scoring = uplift_scoring
-    def extract_treatment_arrays(self, X):
-        real_X = X.main_array
-        y = X.array_dict["y"]
-        trt = X.array_dict["trt"]
-        n_trt = X.scalar_dict["n_trt"]
-        return real_X, y, trt, n_trt
     def __call__(self, estimator, X, y, *args, **kwargs):
-        real_X, y, trt, n_trt = self.extract_treatment_arrays(X)
+        real_X, y, trt, n_trt = _extract_uplift_arrays(X)
         return self.uplift_scoring(estimator.base_estimator, real_X, y, trt, n_trt, *args, **kwargs)
 
         
