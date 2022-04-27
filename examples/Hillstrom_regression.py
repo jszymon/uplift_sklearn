@@ -45,7 +45,7 @@ print("training SATT:", e_satt(y, r.predict(X), trt, n_trt=2))
 print("crossval SATE:", cross_val_score(r, X, y, trt, n_trt=2, cv=10))
 print("crossval SATE:", cross_validate(r, X, y, trt,
                                        n_trt=2, cv=10,
-                                       scoring="e_sate")["test_score"])
+                                       scoring=["e_sate"])["test_e_sate"])
 
 # linear regression uplift model with coef_ and intercept_
 rlin = MultimodelUpliftLinearRegressor()
@@ -65,7 +65,7 @@ print("training SATT:", e_satt(y, r.predict(X), trt))
 print("crossval SATE:", cross_val_score(r, X, y, trt, n_trt=1, cv=10))
 print("crossval SATE:", cross_validate(r, X, y, trt,
                                        n_trt=1, cv=10,
-                                       scoring="e_sate")["test_score"])
+                                       scoring=["e_sate"])["test_e_sate"])
 
 
 rlin.fit(X, y, trt)
@@ -87,9 +87,6 @@ print("best alpha:", rr.best_params_)
 print("training SATE:", rr.score(X, y, trt))
 print("training SATT:", e_satt(y, rr.predict(X), trt))
 print("crossval SATE:", cross_val_score(rr, X, y, trt, n_trt=1, cv=10))
-#print("crossval SATE:", cross_validate(rr, X, y, trt,
-#                                       n_trt=1, cv=10,
-#                                       scoring="e_sate")["test_score"])
 
 #tune T/C ridge separately
 rridge2 = MultimodelUpliftRegressor(base_estimator = [("model_c", Ridge()),

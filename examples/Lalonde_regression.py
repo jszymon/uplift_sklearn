@@ -34,7 +34,7 @@ print("training SATT:", e_satt(y, r.predict(X), trt, n_trt=1))
 print("crossval SATE:", cross_val_score(r, X, y, trt, n_trt=1, cv=10))
 print("crossval SATE:", cross_validate(r, X, y, trt,
                                        n_trt=1, cv=10,
-                                       scoring="e_sate")["test_score"])
+                                       scoring=["e_sate"])["test_e_sate"])
 
 # linear regression uplift model with coef_ and intercept_
 rlin = MultimodelUpliftLinearRegressor()
