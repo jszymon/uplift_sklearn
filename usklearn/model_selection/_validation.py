@@ -1,10 +1,4 @@
-"""This file is copied directly from sklearn and modified.
-
-A simpler implementation would be possible if sklearn allowed arguments to be
-passed to scrers.
-"""
-
-# ------------------------------------------------------------
+"""Model validation functions for uplift models."""
 
 
 import numpy as np
@@ -13,7 +7,6 @@ from sklearn.base import is_classifier
 from sklearn.utils import indexable
 from sklearn.utils.metaestimators import if_delegate_has_method
 from sklearn.metrics import check_scoring
-from sklearn.metrics._scorer import _check_multimetric_scoring
 from sklearn.model_selection import check_cv
 from sklearn.model_selection import cross_validate as _sklearn_cross_validate
 from sklearn.preprocessing import LabelEncoder
@@ -88,6 +81,66 @@ class _WrappedScoring:
         real_X, y, trt, n_trt = _extract_uplift_arrays(X)
         return self.uplift_scoring(estimator.base_estimator, real_X, y, trt, n_trt, *args, **kwargs)
 
+# copied from sklearn to avoid use of private sklearn functions
+def _check_multimetric_scoring(estimator, scoring):
+    err_msg_generic = (
+        f"scoring is invalid (got {scoring!r}). Refer to the "
+        "scoring glossary for details: "
+        "https://scikit-learn.org/stable/glossary.html#term-scoring"
+    )
+
+    if isinstance(scoring, (list, tuple, set)):
+        err_msg = (
+            "The list/tuple elements must be unique strings of predefined scorers. "
+        )
+        try:
+            keys = set(scoring)
+        except TypeError as e:
+            raise ValueError(err_msg) from e
+
+        if len(keys) != len(scoring):
+            raise ValueError(
+                f"{err_msg} Duplicate elements were found in"
+                f" the given list. {scoring!r}"
+            )
+        elif len(keys) > 0:
+            if not all(isinstance(k, str) for k in keys):
+                if any(callable(k) for k in keys):
+                    raise ValueError(
+                        f"{err_msg} One or more of the elements "
+                        "were callables. Use a dict of score "
+                        "name mapped to the scorer callable. "
+                        f"Got {scoring!r}"
+                    )
+                else:
+                    raise ValueError(
+                        f"{err_msg} Non-string types were found "
+                        f"in the given list. Got {scoring!r}"
+                    )
+            scorers = {
+                scorer: check_scoring(estimator, scoring=scorer) for scorer in scoring
+            }
+        else:
+            raise ValueError(f"{err_msg} Empty list was given. {scoring!r}")
+
+    elif isinstance(scoring, dict):
+        keys = set(scoring)
+        if not all(isinstance(k, str) for k in keys):
+            raise ValueError(
+                "Non-string types were found in the keys of "
+                f"the given dict. scoring={scoring!r}"
+            )
+        if len(keys) == 0:
+            raise ValueError(f"An empty dict was passed. {scoring!r}")
+        scorers = {
+            key: check_scoring(estimator, scoring=scorer)
+            for key, scorer in scoring.items()
+        }
+    else:
+        raise ValueError(err_msg_generic)
+    return scorers
+
+
 def uplift_check_cv(cv, y, trt, n_trt, *, classifier=False):
     """Return a correct cv and y_stratify to pass to
 
@@ -106,6 +159,7 @@ def uplift_check_cv(cv, y, trt, n_trt, *, classifier=False):
     # classifier=True ensures stratification
     cv = check_cv(cv, y_stratify, classifier=True)
     return cv, y_stratify
+
         
 def cross_validate(estimator, X, y, trt, n_trt=None, groups=None, scoring=None, cv=None,
                        *args, **kwargs):
@@ -120,9 +174,11 @@ def cross_validate(estimator, X, y, trt, n_trt=None, groups=None, scoring=None, 
     wrapped_est = _WrappedUpliftEstimator(estimator)
     # wrapped scoring
     # check_cv explicitly to stratify on treatment even for regression
-    scorers, _ = _check_multimetric_scoring(estimator, scoring=scoring)
+    scorers = _check_multimetric_scoring(estimator, scoring=scoring)
     wrapped_scorers = {name:_WrappedScoring(scoring) for name, scoring in scorers.items()}
-    return _sklearn_cross_validate(wrapped_est, Xm, y_stratify, groups=groups, scoring=wrapped_scorers, cv=cv, *args, **kwargs)
+    return _sklearn_cross_validate(wrapped_est, Xm, y_stratify, groups=groups, scoring=wrapped_scorers,
+                                   cv=cv, *args, **kwargs)
+
 
 
 
