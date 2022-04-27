@@ -2,7 +2,7 @@
 
 import numpy as np
 from scipy.linalg.lapack import get_lapack_funcs, _compute_lwork
-from scipy.linalg.misc import LinAlgError, _datacopied, LinAlgWarning
+from scipy.linalg.misc import LinAlgError, LinAlgWarning
 from scipy import linalg
 from scipy.linalg import lstsq
 import scipy.sparse as sp
@@ -11,7 +11,6 @@ from sklearn.utils import check_X_y, check_consistent_length
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model._base import LinearModel
 from sklearn.utils.metaestimators import _BaseComposition
-from scipy.linalg.decomp import _asarray_validated
 from ..base import UpliftRegressorMixin
 from ..utils import check_trt
 
