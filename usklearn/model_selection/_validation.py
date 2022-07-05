@@ -72,6 +72,9 @@ class _WrappedUpliftEstimator(_BaseComposition):
         else:
             self._set_params('base_estimator', **kwargs)
         return self
+    def __getattr__(self, arg):
+        """Delegate to real grid search."""
+        return getattr(self.base_estimator, arg)
 
 class _WrappedScoring:
     """Wrap uplift scoring into a sklearn scoring interface."""
