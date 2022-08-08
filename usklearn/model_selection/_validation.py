@@ -6,7 +6,6 @@ import numpy as np
 from sklearn.base import is_classifier
 from sklearn.utils import indexable
 from sklearn.utils.metaestimators import if_delegate_has_method
-from sklearn.metrics import check_scoring
 from sklearn.model_selection import check_cv
 from sklearn.model_selection import cross_validate as _sklearn_cross_validate
 from sklearn.preprocessing import LabelEncoder
@@ -15,6 +14,9 @@ from sklearn.utils.metaestimators import _BaseComposition
 
 from ..utils import check_trt
 from ..utils import MultiArray
+
+from ..metrics import check_uplift_scoring
+
 
 __all__ = ['cross_validate', 'cross_val_score', 'cross_val_predict',
            'permutation_test_score', 'learning_curve', 'validation_curve']
@@ -121,7 +123,7 @@ def _check_multimetric_scoring(estimator, scoring):
                         f"in the given list. Got {scoring!r}"
                     )
             scorers = {
-                scorer: check_scoring(estimator, scoring=scorer) for scorer in scoring
+                scorer: check_uplift_scoring(estimator, scoring=scorer) for scorer in scoring
             }
         else:
             raise ValueError(f"{err_msg} Empty list was given. {scoring!r}")
@@ -136,7 +138,7 @@ def _check_multimetric_scoring(estimator, scoring):
         if len(keys) == 0:
             raise ValueError(f"An empty dict was passed. {scoring!r}")
         scorers = {
-            key: check_scoring(estimator, scoring=scorer)
+            key: check_uplift_scoring(estimator, scoring=scorer)
             for key, scorer in scoring.items()
         }
     else:
@@ -189,7 +191,7 @@ def cross_val_score(estimator, X, y, trt, n_trt=None, groups=None, scoring=None,
                     n_jobs=None, verbose=0, fit_params=None,
                     pre_dispatch='2*n_jobs', error_score=np.nan):
     # To ensure multimetric format is not supported
-    scorer = check_scoring(estimator, scoring=scoring)
+    scorer = check_uplift_scoring(estimator, scoring=scoring)
 
     cv_results = cross_validate(estimator=estimator, X=X, y=y, trt=trt,
                                 n_trt=n_trt, groups=groups,

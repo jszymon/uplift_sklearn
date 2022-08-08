@@ -1,5 +1,9 @@
 """Implement scorers for uplift modeling."""
 
+import copy
+
+from .regression import e_sate, e_satt
+
 class _BaseUpliftScorer:
     def __init__(self, score_func, sign, kwargs):
         self._kwargs = kwargs
@@ -78,6 +82,127 @@ class _UpliftDecisionScorer(_BaseUpliftScorer):
         else:
             return self._sign * self._score_func(y_true, a, trt, n_trt,
                                                  **self._kwargs)
+class _PassthroughUpliftScorer:
+    def __init__(self, estimator):
+        self._estimator = estimator
+
+    def __call__(self, estimator, *args, **kwargs):
+        """Method that wraps estimator.score"""
+        return estimator.score(*args, **kwargs)
+
+    #def get_metadata_routing(self):
+    #    """Get requested data properties.
+    #    .. versionadded:: 1.2
+    #    Returns
+    #    -------
+    #    routing : MetadataRouter
+    #        A :class:`~utils.metadata_routing.MetadataRouter` encapsulating
+    #        routing information.
+    #    """
+    #    # This scorer doesn't do any validation or routing, it only exposes the
+    #    # score requests to the parent object. This object behaves as a
+    #    # consumer rather than a router.
+    #    res = MetadataRequest(owner=self._estimator.__class__.__name__)
+    #    res.score = get_routing_for_object(self._estimator).score
+    #    return res
+
+def get_uplift_scorer(scoring):
+    """Get an uplift scorer from string.
+    Parameters
+    ----------
+    scoring : str or callable
+        Scoring method as string. If callable it is returned as is.
+    Returns
+    -------
+    scorer : callable
+        The scorer.
+    Notes
+    -----
+    When passed a string, this function always returns a copy of the scorer
+    object. Calling `get_uplift_scorer` twice for the same scorer results in two
+    separate scorer objects.
+    """
+    if isinstance(scoring, str):
+        try:
+            scorer = copy.deepcopy(_UPLIFT_SCORERS[scoring])
+        except KeyError:
+            raise ValueError(
+                "%r is not a valid uplift scoring value. "
+                "Use usklearn.metrics.get_uplift_scorer_names() "
+                "to get valid options." % scoring
+            )
+    else:
+        scorer = scoring
+    return scorer
+
+def check_uplift_scoring(estimator, scoring=None, *, allow_none=False):
+    """Determine uplift scorer from user options.
+    A TypeError will be thrown if the estimator cannot be scored.
+    Parameters
+    ----------
+    estimator : estimator object implementing 'fit'
+        The object to use to fit the data.
+    scoring : str or callable, default=None
+        A string (see model evaluation documentation) or
+        a scorer callable object / function with signature
+        ``scorer(estimator, X, y, trt, n_trt)``.
+        If None, the provided estimator object's `score` method is used.
+    allow_none : bool, default=False
+        If no scoring is specified and the estimator has no score function, we
+        can either return None or raise an exception.
+    Returns
+    -------
+    scoring : callable
+        A scorer callable object / function with signature
+        ``scorer(estimator, X, y)``.
+    """
+    if not hasattr(estimator, "fit"):
+        raise TypeError(
+            "estimator should be an estimator implementing 'fit' method, %r was passed"
+            % estimator
+        )
+    if isinstance(scoring, str):
+        return get_uplift_scorer(scoring)
+    elif callable(scoring):
+        # Heuristic to ensure user has not passed a metric
+        module = getattr(scoring, "__module__", None)
+        if (
+            hasattr(module, "startswith")
+            and module.startswith("usklearn.metrics.")
+            and not module.startswith("usklearn.metrics._scorer")
+            and not module.startswith("usklearn.metrics.tests.")
+        ):
+            raise ValueError(
+                "scoring value %r looks like it is a metric "
+                "function rather than a scorer. A scorer should "
+                "require an estimator as its first parameter. "
+                "Please use `make_scorer` to convert a metric "
+                "to a scorer." % scoring
+            )
+        return get_uplift_scorer(scoring)
+    elif scoring is None:
+        if hasattr(estimator, "score"):
+            return _PassthroughUpliftScorer(estimator)
+        elif allow_none:
+            return None
+        else:
+            raise TypeError(
+                "If no scoring is specified, the estimator passed should "
+                "have a 'score' method. The estimator %r does not." % estimator
+            )
+    elif isinstance(scoring, Iterable):
+        raise ValueError(
+            "For evaluating multiple scores, use "
+            "usklearn.model_selection.cross_validate instead. "
+            "{0} was passed.".format(scoring)
+        )
+    else:
+        raise ValueError(
+            "uplift scoring value should either be a callable, string or None. %r was passed"
+            % scoring
+        )
+
+
 
 def make_uplift_scorer(score_func, greater_is_better=True, needs_decision=False,
                        needs_proba=False, needs_threshold=False, **kwargs):
@@ -137,3 +262,20 @@ def make_uplift_scorer(score_func, greater_is_better=True, needs_decision=False,
     else:
         cls = _UpliftPredictScorer
     return cls(score_func, sign, kwargs)
+
+
+_UPLIFT_SCORERS = dict(
+    e_sate=make_uplift_scorer(e_sate, greater_is_better=False),
+    e_satt=make_uplift_scorer(e_satt, greater_is_better=False),
+)
+
+def get_uplift_scorer_names():
+    """Get the names of all available scorers.
+    These names can be passed to :func:`~usklearn.metrics.get_uplift_scorer` to
+    retrieve the scorer object.
+    Returns
+    -------
+    list of str
+        Names of all available scorers.
+    """
+    return sorted(_UPLIFT_SCORERS.keys())
