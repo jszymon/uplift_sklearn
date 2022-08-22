@@ -24,6 +24,8 @@ from sklearn.utils.validation import indexable, check_is_fitted
 from sklearn.utils.metaestimators import if_delegate_has_method
 from sklearn.metrics import check_scoring
 
+from ..metrics import check_uplift_scoring
+
 from ._validation import uplift_check_cv
 from ._validation import _check_multimetric_scoring
 
@@ -55,7 +57,7 @@ class BaseSearchCV(BaseEstimator):
         trt, n_trt = check_trt(trt, n_trt)
 
         wrapped_est = _WrappedUpliftEstimator(self.estimator)
-        scoring = check_scoring(self.estimator, self.scoring)
+        scoring = check_uplift_scoring(self.estimator, self.scoring)
         wrapped_scoring = _WrappedScoring(scoring)
         # TODO: multimetric scoring
         #scorers, _ = _check_multimetric_scoring(estimator, scoring=scoring)

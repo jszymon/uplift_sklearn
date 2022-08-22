@@ -638,7 +638,7 @@ def permutation_test_score(estimator, X, y, groups=None, cv='warn',
     X, y, groups = indexable(X, y, groups)
 
     cv = check_cv(cv, y, classifier=is_classifier(estimator))
-    scorer = check_scoring(estimator, scoring=scoring)
+    scorer = check_uplift_scoring(estimator, scoring=scoring)
     random_state = check_random_state(random_state)
 
     # We clone the estimator to make sure that all the folds are
@@ -813,7 +813,7 @@ def learning_curve(estimator, X, y, groups=None,
     # Store it as list as we will be iterating over the list multiple times
     cv_iter = list(cv.split(X, y, groups))
 
-    scorer = check_scoring(estimator, scoring=scoring)
+    scorer = check_uplift_scoring(estimator, scoring=scoring)
 
     n_max_training_samples = len(cv_iter[0][0])
     # Because the lengths of folds can be significantly different, it is
@@ -1040,7 +1040,7 @@ def validation_curve(estimator, X, y, param_name, param_range, groups=None,
     X, y, groups = indexable(X, y, groups)
 
     cv = check_cv(cv, y, classifier=is_classifier(estimator))
-    scorer = check_scoring(estimator, scoring=scoring)
+    scorer = check_uplift_scoring(estimator, scoring=scoring)
 
     parallel = Parallel(n_jobs=n_jobs, pre_dispatch=pre_dispatch,
                         verbose=verbose)
