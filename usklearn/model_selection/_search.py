@@ -21,7 +21,6 @@ import numpy as np
 
 from sklearn.base import BaseEstimator, is_classifier, clone
 from sklearn.utils.validation import indexable, check_is_fitted
-from sklearn.utils.metaestimators import if_delegate_has_method
 from sklearn.metrics import check_scoring
 
 from ..metrics import check_uplift_scoring

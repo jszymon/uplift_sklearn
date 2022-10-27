@@ -5,7 +5,7 @@ import numpy as np
 
 from sklearn.base import is_classifier
 from sklearn.utils import indexable
-from sklearn.utils.metaestimators import if_delegate_has_method
+from sklearn.utils.metaestimators import available_if
 from sklearn.model_selection import check_cv
 from sklearn.model_selection import cross_validate as _sklearn_cross_validate
 from sklearn.preprocessing import LabelEncoder
@@ -29,6 +29,18 @@ def _extract_uplift_arrays(X):
         n_trt = X.scalar_dict["n_trt"]
         return real_X, y, trt, n_trt
 
+# Adapted from sklearn:
+def _estimator_has(attr):
+    """Check if we can delegate a method to the underlying estimator.
+    """
+
+    def check(self):
+        # raise an AttributeError if `attr` does not exist
+        getattr(self.base_estimator, attr)
+        return True
+
+    return check
+
 class _WrappedUpliftEstimator(_BaseComposition):
     """Wrap upift estimator inside a sklearn estimator interface."""
     _uplift_model = True
@@ -43,25 +55,25 @@ class _WrappedUpliftEstimator(_BaseComposition):
     def score(self, X, y, *args, **kwargs):
         real_X, y, trt, n_trt = _extract_uplift_arrays(X)
         return self.base_estimator.score(real_X, y, trt, n_trt, *args, **kwargs)
-    @if_delegate_has_method(delegate="base_estimator")
+    @available_if(_estimator_has("predict"))
     def predict(self, X):
         return self.base_estimator.predict(X)
-    @if_delegate_has_method(delegate="base_estimator")
+    @available_if(_estimator_has("predict_action"))
     def predict_action(self, X):
         return self.base_estimator.predict_action(X)
-    @if_delegate_has_method(delegate="base_estimator")
+    @available_if(_estimator_has("predict_proba"))
     def predict_proba(self, X):
         return self.base_estimator.predict_proba(X)
-    @if_delegate_has_method(delegate="base_estimator")
+    @available_if(_estimator_has("predict_log_proba"))
     def predict_log_proba(self, X):
         return self.base_estimator.predict_log_proba(X)
-    @if_delegate_has_method(delegate="base_estimator")
+    @available_if(_estimator_has("decision_function"))
     def decision_function(self, X):
         return self.base_estimator.decision_function(X)
-    @if_delegate_has_method(delegate="base_estimator")
+    @available_if(_estimator_has("transform"))
     def transform(self, X):
         return self.base_estimator.transform(X)
-    @if_delegate_has_method(delegate="base_estimator")
+    @available_if(_estimator_has("inverse_transform"))
     def inverse_transform(self, Xt):
         return self.base_estimator.inverse_transform(Xt)
     def get_params(self, deep=True):
