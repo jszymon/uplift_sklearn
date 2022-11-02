@@ -21,14 +21,6 @@ from ..metrics import check_uplift_scoring
 __all__ = ['cross_validate', 'cross_val_score', 'cross_val_predict',
            'permutation_test_score', 'learning_curve', 'validation_curve']
 
-def _extract_uplift_arrays(X):
-        """Extract data for uplift training from MultiArray."""
-        real_X = X.main_array
-        y = X.array_dict["y"]
-        trt = X.array_dict["trt"]
-        n_trt = X.scalar_dict["n_trt"]
-        return real_X, y, trt, n_trt
-
 # Adapted from sklearn:
 def _estimator_has(attr):
     """Check if we can delegate a method to the underlying estimator.
@@ -40,6 +32,14 @@ def _estimator_has(attr):
         return True
 
     return check
+
+def _extract_uplift_arrays(X):
+        """Extract data for uplift training from MultiArray."""
+        real_X = X.main_array
+        y = X.array_dict["y"]
+        trt = X.array_dict["trt"]
+        n_trt = X.scalar_dict["n_trt"]
+        return real_X, y, trt, n_trt
 
 class _WrappedUpliftEstimator(_BaseComposition):
     """Wrap upift estimator inside a sklearn estimator interface."""
@@ -183,9 +183,9 @@ def cross_validate(estimator, X, y, trt, n_trt=None, groups=None, scoring=None, 
     X, y, trt, groups = indexable(X, y, trt, groups)
 
     trt, n_trt = check_trt(trt, n_trt)
+    # y_stratify is used only for stratification
     cv, y_stratify = uplift_check_cv(cv, y, trt, n_trt, classifier=is_classifier(estimator))
     # multiarray to pass additional data
-    # y_stratify is used only for stratification
     Xm = MultiArray(X, array_dict={"y":y, "trt":trt}, scalar_dict={"n_trt":n_trt})
     # wrapped estimator
     wrapped_est = _WrappedUpliftEstimator(estimator)
