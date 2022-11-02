@@ -6,8 +6,6 @@ import numpy as np
 
 from sklearn.utils import check_consistent_length
 
-from sklearn.utils import indexable  # ????????????????????????
-
 class MultiArray:
     __array_ufunc__ = None # don't allow numpy operations by default
 
