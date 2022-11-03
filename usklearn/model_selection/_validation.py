@@ -238,18 +238,14 @@ def cross_validate(estimator, X, y, trt, n_trt=None, groups=None, scoring=None, 
 
 
 def cross_val_score(estimator, X, y, trt, n_trt=None, groups=None, scoring=None, cv=None,
-                    n_jobs=None, verbose=0, fit_params=None,
-                    pre_dispatch='2*n_jobs', error_score=np.nan):
+                    *args, **kwargs):
     # To ensure multimetric format is not supported
     scorer = check_uplift_scoring(estimator, scoring=scoring)
 
     cv_results = cross_validate(estimator=estimator, X=X, y=y, trt=trt,
                                 n_trt=n_trt, groups=groups,
                                 scoring={'score': scorer}, cv=cv,
-                                n_jobs=n_jobs, verbose=verbose,
-                                fit_params=fit_params,
-                                pre_dispatch=pre_dispatch,
-                                error_score=error_score)
+                                *args, **kwargs)
     return cv_results['test_score']
 
 
@@ -276,7 +272,7 @@ def cross_val_predict(estimator, X, y, trt, n_trt=None, groups=None,
 # TODO: fix functions below
 
 
-def permutation_test_score(estimator, X, y, groups=None, cv='warn',
+def permutation_test_score(estimator, X, y, groups=None, cv=None,
                            n_permutations=100, n_jobs=None, random_state=0,
                            verbose=0, scoring=None):
     """Evaluate the significance of a cross-validated score with permutations
