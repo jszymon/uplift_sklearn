@@ -32,6 +32,19 @@ def _estimator_has(attr):
         return True
 
     return check
+def _estimator_has_predict():
+    """Check the predict method of wrapped uplift estimator.
+    """
+
+    def check(self):
+        # raise an AttributeError if `attr` does not exist
+        if self.wrapped_predict is None:
+            getattr(self.base_estimator, "predict")
+        else:
+            getattr(self.base_estimator, self.wrapped_predict)
+        return True
+
+    return check
 
 def _extract_uplift_arrays(X):
         """Extract data for uplift training from MultiArray."""
@@ -42,10 +55,19 @@ def _extract_uplift_arrays(X):
         return real_X, y, trt, n_trt
 
 class _WrappedUpliftEstimator(_BaseComposition):
-    """Wrap upift estimator inside a sklearn estimator interface."""
+    """Wrap upift estimator inside a sklearn estimator interface.
+
+    If wrapped_predict is set it specifies the method to be called by
+    wrapped model's predict.  This way standard scikit functions can
+    access uplift specific predictions such as predict_action.
+    """
     _uplift_model = True
-    def __init__(self, base_estimator):
+    def __init__(self, base_estimator, wrapped_predict=None):
         self.base_estimator = base_estimator
+        self.wrapped_predict = wrapped_predict
+        if (self.wrapped_predict is not None and not
+            hasattr(self.base_estimator, wrapped_predict)):
+            raise RuntimeError(f"Can't wrap uplift model: {self.wrapped_predict} method not available.")
     @property
     def _estimator_type(self):
         return self.base_estimator._estimator_type
@@ -55,8 +77,10 @@ class _WrappedUpliftEstimator(_BaseComposition):
     def score(self, X, y, *args, **kwargs):
         real_X, y, trt, n_trt = _extract_uplift_arrays(X)
         return self.base_estimator.score(real_X, y, trt, n_trt, *args, **kwargs)
-    @available_if(_estimator_has("predict"))
+    @available_if(_estimator_has_predict())
     def predict(self, X):
+        if self.wrapped_predict is not None:
+            return getattr(self.base_estimator, self.wrapped_predict)(X)
         return self.base_estimator.predict(X)
     @available_if(_estimator_has("predict_action"))
     def predict_action(self, X):
