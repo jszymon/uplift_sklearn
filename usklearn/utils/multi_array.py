@@ -23,6 +23,8 @@ class MultiArray:
             scalar_dict = dict()
         self.scalar_dict = scalar_dict
         self.shape = self.main_array.shape
+        self.ndim = self.main_array.ndim
+        self.dtype = self.main_array.dtype
     def __getitem__(self, idx):
         new_dict = {k:self.array_dict[k][idx] for k in self.array_dict}
         return MultiArray(self.main_array[idx], new_dict, self.scalar_dict)
