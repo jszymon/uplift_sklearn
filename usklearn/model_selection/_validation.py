@@ -9,6 +9,7 @@ from sklearn.utils.metaestimators import available_if
 from sklearn.model_selection import check_cv
 from sklearn.model_selection import cross_validate as _sklearn_cross_validate
 from sklearn.model_selection import cross_val_predict as _sklearn_cross_val_predict
+from sklearn.model_selection import permutation_test_score as _sklearn_permutation_test_score
 from sklearn.preprocessing import LabelEncoder
 
 from sklearn.utils.metaestimators import _BaseComposition
@@ -241,7 +242,6 @@ def cross_val_score(estimator, X, y, trt, n_trt=None, groups=None, scoring=None,
                     *args, **kwargs):
     # To ensure multimetric format is not supported
     scorer = check_uplift_scoring(estimator, scoring=scoring)
-
     cv_results = cross_validate(estimator=estimator, X=X, y=y, trt=trt,
                                 n_trt=n_trt, groups=groups,
                                 scoring={'score': scorer}, cv=cv,
@@ -272,7 +272,22 @@ def cross_val_predict(estimator, X, y, trt, n_trt=None, groups=None,
 # TODO: fix functions below
 
 
-def permutation_test_score(estimator, X, y, groups=None, cv=None,
+def permutation_test_score(estimator, X, y, trt, n_trt=None, groups=None, cv=None,
+                           scoring=None, *args, **kwargs):
+    X, y, trt, groups = indexable(X, y, trt, groups)
+    trt, n_trt = check_trt(trt, n_trt)
+    # y_stratify is used only for stratification
+    cv, y_stratify = uplift_check_cv(cv, y, trt, n_trt, classifier=is_classifier(estimator))
+    Xm = MultiArray(X, array_dict={"y":y, "trt":trt}, scalar_dict={"n_trt":n_trt})
+    wrapped_est = _WrappedUpliftEstimator(estimator)
+    scorer = check_uplift_scoring(estimator, scoring=scoring)
+    wrapped_scorer = _WrappedScoring(scorer)
+    return _sklearn_permutation_test_score(wrapped_est, Xm, y_stratify, groups=groups,
+                                           scoring=wrapped_scorer,
+                                           cv=cv, *args, **kwargs)
+
+
+def ___permutation_test_score(estimator, X, y, groups=None, cv=None,
                            n_permutations=100, n_jobs=None, random_state=0,
                            verbose=0, scoring=None):
     """Evaluate the significance of a cross-validated score with permutations
