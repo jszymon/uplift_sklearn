@@ -34,7 +34,7 @@ def encode_features(D):
 
 D = fetch_Hillstrom()
 X = encode_features(D)
-y = D.target_spend
+y = np.log1p(D.target_spend)
 trt = D.treatment
 
 r = MultimodelUpliftRegressor()
@@ -79,7 +79,7 @@ print("crossval SATE:", cross_val_score(rlin, X, y, trt, n_trt=1, cv=10))
 rridge = MultimodelUpliftRegressor(base_estimator=Ridge())
 rr = GridSearchCV(rridge,
                   {"base_estimator__alpha":[0,1e-3,1e-2,1e-1,1,1e1,1e2,1e3]},
-                  cv=3)
+                  cv=3, n_jobs=-1)
 rr.fit(X, y, trt)
 print("\n\n")
 print(rr)
@@ -101,5 +101,8 @@ print(rr)
 print("best alpha:", rr2.best_params_)
 print("training SATE:", rr2.score(X, y, trt))
 print("training SATT:", e_satt(y, rr2.predict(X), trt))
-print("crossval SATE:", cross_val_score(rr2, X, y, trt, n_trt=1, cv=10))
+print("crossval SATE:", cross_val_score(rr2, X, y, trt, n_trt=1, cv=10, n_jobs=-1))
 
+# permutation test
+from usklearn.model_selection import permutation_test_score
+print(permutation_test_score(r, X, y, trt, n_trt=1, cv=3, n_permutations=100, n_jobs=-1))
