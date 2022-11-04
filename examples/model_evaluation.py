@@ -10,12 +10,14 @@ from usklearn.model_selection import cross_val_predict, permutation_test_score
 
 D = fetch_Lalonde("B")
 X = D.data
-y = D.target
+y = np.log1p(D.target)
 trt = D.treatment
 
 r = MultimodelUpliftRegressor()
 print("Crossvalidated predictions:")
-print(cross_val_predict(r, X, y, trt, n_trt=1, cv=5))
+print(cross_val_predict(r, X, y, trt, n_trt=1, cv=10))
 
 print("\n\nPermutation based model score")
-print(permutation_test_score(r, X, y, trt, n_trt=1))
+print(permutation_test_score(r, X, y, trt, n_trt=1, cv=10, n_permutations=1000, n_jobs=-1))
+r.fit(X, y, trt, n_trt=1)
+print(r.score(X, y, trt, n_trt=1))

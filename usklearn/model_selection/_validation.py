@@ -269,22 +269,61 @@ def cross_val_predict(estimator, X, y, trt, n_trt=None, groups=None,
                                       method=method, *args, **kwargs)
 
 
-# TODO: fix functions below
+# permutation_test_score needs a modified approach to wrapping after
+# wrapping y contains only stratification information which is
+# permuted by this function
 
+from sklearn.model_selection import BaseCrossValidator
+class _FixedStrataCV(BaseCrossValidator):
+    """Wrap a crossvalidator such that statification variable is the same
+    for each iteration.
+    """
+    def __init__(self, cv, strata):
+        self.cv = cv
+        self.strata = strata
+    def get_n_splits(self, X, y=None, groups=None):
+        return self.cv.get_n_splits(X=X, y=y, groups=groups)
+    def _iter_test_masks(self, X=None, y=None, groups=None):
+        return self.cv._iter_test_masks(X=X, y=self.strata, groups=groups)
+    def _iter_test_indices(self, X=None, y=None, groups=None):
+        return self.cv._iter_test_indices(X=X, y=self.strata, groups=groups)
 
-def permutation_test_score(estimator, X, y, trt, n_trt=None, groups=None, cv=None,
+class _WrappedUpliftEstimatorOrigY(_WrappedUpliftEstimator):
+    """Modification of wrapped uplift estimator which uses original y for
+    training.
+    """
+    def fit(self, X, y, **kwargs):
+        real_X, y_wrapped, trt, n_trt = _extract_uplift_arrays(X)
+        return self.base_estimator.fit(real_X, y, trt, n_trt, **kwargs)
+    def score(self, X, y, *args, **kwargs):
+        real_X, y_wrapped, trt, n_trt = _extract_uplift_arrays(X)
+        return self.base_estimator.score(real_X, y, trt, n_trt, *args, **kwargs)
+
+    
+def permutation_test_score(estimator, X, y, trt, n_trt=None, stratify_on_trt=True,
+                           groups=None, cv=None,
                            scoring=None, *args, **kwargs):
+    """Permutation score test for uplift models.
+
+    If stratify_on_trt is true, permutations are performed separately
+    for each treatment.  This way constant treatment effect will not
+    affect the results.
+    """
     X, y, trt, groups = indexable(X, y, trt, groups)
     trt, n_trt = check_trt(trt, n_trt)
     # y_stratify is used only for stratification
     cv, y_stratify = uplift_check_cv(cv, y, trt, n_trt, classifier=is_classifier(estimator))
+    wrapped_cv = _FixedStrataCV(cv, y_stratify) # don't permute strata
+    if stratify_on_trt:
+        assert groups is None
+        groups = trt
     Xm = MultiArray(X, array_dict={"y":y, "trt":trt}, scalar_dict={"n_trt":n_trt})
-    wrapped_est = _WrappedUpliftEstimator(estimator)
+    wrapped_est = _WrappedUpliftEstimatorOrigY(estimator)
     scorer = check_uplift_scoring(estimator, scoring=scoring)
     wrapped_scorer = _WrappedScoring(scorer)
-    return _sklearn_permutation_test_score(wrapped_est, Xm, y_stratify, groups=groups,
-                                           scoring=wrapped_scorer,
-                                           cv=cv, *args, **kwargs)
+    return _sklearn_permutation_test_score(wrapped_est, Xm, y, groups=groups,
+                                           cv=wrapped_cv, scoring=wrapped_scorer,
+                                           *args, **kwargs)
 
 
 def ___permutation_test_score(estimator, X, y, groups=None, cv=None,
