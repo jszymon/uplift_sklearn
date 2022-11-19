@@ -10,6 +10,7 @@ from sklearn.model_selection import check_cv
 from sklearn.model_selection import cross_validate as _sklearn_cross_validate
 from sklearn.model_selection import cross_val_predict as _sklearn_cross_val_predict
 from sklearn.model_selection import permutation_test_score as _sklearn_permutation_test_score
+from sklearn.model_selection import learning_curve as _sklearn_learning_curve
 from sklearn.preprocessing import LabelEncoder
 
 from sklearn.utils.metaestimators import _BaseComposition
@@ -327,265 +328,22 @@ def permutation_test_score(estimator, X, y, trt, n_trt=None, stratify_on_trt=Tru
 
 
 
-
-def learning_curve(estimator, X, y, groups=None,
-                   train_sizes=np.linspace(0.1, 1.0, 5), cv='warn',
-                   scoring=None, exploit_incremental_learning=False,
-                   n_jobs=None, pre_dispatch="all", verbose=0, shuffle=False,
-                   random_state=None, error_score='raise-deprecating'):
-    """Learning curve.
-
-    Determines cross-validated training and test scores for different training
-    set sizes.
-
-    A cross-validation generator splits the whole dataset k times in training
-    and test data. Subsets of the training set with varying sizes will be used
-    to train the estimator and a score for each training subset size and the
-    test set will be computed. Afterwards, the scores will be averaged over
-    all k runs for each training subset size.
-
-    Read more in the :ref:`User Guide <learning_curve>`.
-
-    Parameters
-    ----------
-    estimator : object type that implements the "fit" and "predict" methods
-        An object of that type which is cloned for each validation.
-
-    X : array-like, shape (n_samples, n_features)
-        Training vector, where n_samples is the number of samples and
-        n_features is the number of features.
-
-    y : array-like, shape (n_samples) or (n_samples, n_features), optional
-        Target relative to X for classification or regression;
-        None for unsupervised learning.
-
-    groups : array-like, with shape (n_samples,), optional
-        Group labels for the samples used while splitting the dataset into
-        train/test set. Only used in conjunction with a "Group" `cv` instance
-        (e.g., `GroupKFold`).
-
-    train_sizes : array-like, shape (n_ticks,), dtype float or int
-        Relative or absolute numbers of training examples that will be used to
-        generate the learning curve. If the dtype is float, it is regarded as a
-        fraction of the maximum size of the training set (that is determined
-        by the selected validation method), i.e. it has to be within (0, 1].
-        Otherwise it is interpreted as absolute sizes of the training sets.
-        Note that for classification the number of samples usually have to
-        be big enough to contain at least one sample from each class.
-        (default: np.linspace(0.1, 1.0, 5))
-
-    cv : int, cross-validation generator or an iterable, optional
-        Determines the cross-validation splitting strategy.
-        Possible inputs for cv are:
-
-        - None, to use the default 3-fold cross validation,
-        - integer, to specify the number of folds in a `(Stratified)KFold`,
-        - :term:`CV splitter`,
-        - An iterable yielding (train, test) splits as arrays of indices.
-
-        For integer/None inputs, if the estimator is a classifier and ``y`` is
-        either binary or multiclass, :class:`StratifiedKFold` is used. In all
-        other cases, :class:`KFold` is used.
-
-        Refer :ref:`User Guide <cross_validation>` for the various
-        cross-validation strategies that can be used here.
-
-        .. versionchanged:: 0.20
-            ``cv`` default value if None will change from 3-fold to 5-fold
-            in v0.22.
-
-    scoring : string, callable or None, optional, default: None
-        A string (see model evaluation documentation) or
-        a scorer callable object / function with signature
-        ``scorer(estimator, X, y)``.
-
-    exploit_incremental_learning : boolean, optional, default: False
-        If the estimator supports incremental learning, this will be
-        used to speed up fitting for different training set sizes.
-
-    n_jobs : int or None, optional (default=None)
-        Number of jobs to run in parallel.
-        ``None`` means 1 unless in a :obj:`joblib.parallel_backend` context.
-        ``-1`` means using all processors. See :term:`Glossary <n_jobs>`
-        for more details.
-
-    pre_dispatch : integer or string, optional
-        Number of predispatched jobs for parallel execution (default is
-        all). The option can reduce the allocated memory. The string can
-        be an expression like '2*n_jobs'.
-
-    verbose : integer, optional
-        Controls the verbosity: the higher, the more messages.
-
-    shuffle : boolean, optional
-        Whether to shuffle training data before taking prefixes of it
-        based on``train_sizes``.
-
-    random_state : int, RandomState instance or None, optional (default=None)
-        If int, random_state is the seed used by the random number generator;
-        If RandomState instance, random_state is the random number generator;
-        If None, the random number generator is the RandomState instance used
-        by `np.random`. Used when ``shuffle`` is True.
-
-    error_score : 'raise' | 'raise-deprecating' or numeric
-        Value to assign to the score if an error occurs in estimator fitting.
-        If set to 'raise', the error is raised.
-        If set to 'raise-deprecating', a FutureWarning is printed before the
-        error is raised.
-        If a numeric value is given, FitFailedWarning is raised. This parameter
-        does not affect the refit step, which will always raise the error.
-        Default is 'raise-deprecating' but from version 0.22 it will change
-        to np.nan.
-
-    Returns
-    -------
-    train_sizes_abs : array, shape (n_unique_ticks,), dtype int
-        Numbers of training examples that has been used to generate the
-        learning curve. Note that the number of ticks might be less
-        than n_ticks because duplicate entries will be removed.
-
-    train_scores : array, shape (n_ticks, n_cv_folds)
-        Scores on training sets.
-
-    test_scores : array, shape (n_ticks, n_cv_folds)
-        Scores on test set.
-
-    Notes
-    -----
-    See :ref:`examples/model_selection/plot_learning_curve.py
-    <sphx_glr_auto_examples_model_selection_plot_learning_curve.py>`
-    """
-    if exploit_incremental_learning and not hasattr(estimator, "partial_fit"):
-        raise ValueError("An estimator must support the partial_fit interface "
-                         "to exploit incremental learning")
-    X, y, groups = indexable(X, y, groups)
-
-    cv = check_cv(cv, y, classifier=is_classifier(estimator))
-    # Store it as list as we will be iterating over the list multiple times
-    cv_iter = list(cv.split(X, y, groups))
-
+def learning_curve(estimator, X, y, trt, n_trt=None, groups=None,
+                   cv=None, scoring=None,
+                   *args, **kwargs):
+    X, y, trt, groups = indexable(X, y, trt, groups)
+    trt, n_trt = check_trt(trt, n_trt)
+    # y_stratify is used only for stratification
+    cv, y_stratify = uplift_check_cv(cv, y, trt, n_trt, classifier=is_classifier(estimator))
+    # multiarray to pass additional data
+    Xm = MultiArray(X, array_dict={"y":y, "trt":trt}, scalar_dict={"n_trt":n_trt})
+    wrapped_est = _WrappedUpliftEstimator(estimator)
     scorer = check_uplift_scoring(estimator, scoring=scoring)
-
-    n_max_training_samples = len(cv_iter[0][0])
-    # Because the lengths of folds can be significantly different, it is
-    # not guaranteed that we use all of the available training data when we
-    # use the first 'n_max_training_samples' samples.
-    train_sizes_abs = _translate_train_sizes(train_sizes,
-                                             n_max_training_samples)
-    n_unique_ticks = train_sizes_abs.shape[0]
-    if verbose > 0:
-        print("[learning_curve] Training set sizes: " + str(train_sizes_abs))
-
-    parallel = Parallel(n_jobs=n_jobs, pre_dispatch=pre_dispatch,
-                        verbose=verbose)
-
-    if shuffle:
-        rng = check_random_state(random_state)
-        cv_iter = ((rng.permutation(train), test) for train, test in cv_iter)
-
-    if exploit_incremental_learning:
-        classes = np.unique(y) if is_classifier(estimator) else None
-        out = parallel(delayed(_incremental_fit_estimator)(
-            clone(estimator), X, y, classes, train, test, train_sizes_abs,
-            scorer, verbose) for train, test in cv_iter)
-    else:
-        train_test_proportions = []
-        for train, test in cv_iter:
-            for n_train_samples in train_sizes_abs:
-                train_test_proportions.append((train[:n_train_samples], test))
-
-        out = parallel(delayed(_fit_and_score)(
-            clone(estimator), X, y, scorer, train, test, verbose,
-            parameters=None, fit_params=None, return_train_score=True,
-            error_score=error_score)
-            for train, test in train_test_proportions)
-        out = np.array(out)
-        n_cv_folds = out.shape[0] // n_unique_ticks
-        out = out.reshape(n_cv_folds, n_unique_ticks, 2)
-
-    out = np.asarray(out).transpose((2, 1, 0))
-
-    return train_sizes_abs, out[0], out[1]
+    wrapped_scorer = _WrappedScoring(scorer)
+    return _sklearn_learning_curve(wrapped_est, Xm, y_stratify, groups=groups, cv=cv,
+                                   scoring = scorer, *args, **kwargs)
 
 
-def _translate_train_sizes(train_sizes, n_max_training_samples):
-    """Determine absolute sizes of training subsets and validate 'train_sizes'.
-
-    Examples:
-        _translate_train_sizes([0.5, 1.0], 10) -> [5, 10]
-        _translate_train_sizes([5, 10], 10) -> [5, 10]
-
-    Parameters
-    ----------
-    train_sizes : array-like, shape (n_ticks,), dtype float or int
-        Numbers of training examples that will be used to generate the
-        learning curve. If the dtype is float, it is regarded as a
-        fraction of 'n_max_training_samples', i.e. it has to be within (0, 1].
-
-    n_max_training_samples : int
-        Maximum number of training samples (upper bound of 'train_sizes').
-
-    Returns
-    -------
-    train_sizes_abs : array, shape (n_unique_ticks,), dtype int
-        Numbers of training examples that will be used to generate the
-        learning curve. Note that the number of ticks might be less
-        than n_ticks because duplicate entries will be removed.
-    """
-    train_sizes_abs = np.asarray(train_sizes)
-    n_ticks = train_sizes_abs.shape[0]
-    n_min_required_samples = np.min(train_sizes_abs)
-    n_max_required_samples = np.max(train_sizes_abs)
-    if np.issubdtype(train_sizes_abs.dtype, np.floating):
-        if n_min_required_samples <= 0.0 or n_max_required_samples > 1.0:
-            raise ValueError("train_sizes has been interpreted as fractions "
-                             "of the maximum number of training samples and "
-                             "must be within (0, 1], but is within [%f, %f]."
-                             % (n_min_required_samples,
-                                n_max_required_samples))
-        train_sizes_abs = (train_sizes_abs * n_max_training_samples).astype(
-                             dtype=np.int, copy=False)
-        train_sizes_abs = np.clip(train_sizes_abs, 1,
-                                  n_max_training_samples)
-    else:
-        if (n_min_required_samples <= 0 or
-                n_max_required_samples > n_max_training_samples):
-            raise ValueError("train_sizes has been interpreted as absolute "
-                             "numbers of training samples and must be within "
-                             "(0, %d], but is within [%d, %d]."
-                             % (n_max_training_samples,
-                                n_min_required_samples,
-                                n_max_required_samples))
-
-    train_sizes_abs = np.unique(train_sizes_abs)
-    if n_ticks > train_sizes_abs.shape[0]:
-        warnings.warn("Removed duplicate entries from 'train_sizes'. Number "
-                      "of ticks will be less than the size of "
-                      "'train_sizes' %d instead of %d)."
-                      % (train_sizes_abs.shape[0], n_ticks), RuntimeWarning)
-
-    return train_sizes_abs
-
-
-def _incremental_fit_estimator(estimator, X, y, classes, train, test,
-                               train_sizes, scorer, verbose):
-    """Train estimator on training subsets incrementally and compute scores."""
-    train_scores, test_scores = [], []
-    partitions = zip(train_sizes, np.split(train, train_sizes)[:-1])
-    for n_train_samples, partial_train in partitions:
-        train_subset = train[:n_train_samples]
-        X_train, y_train = _safe_split(estimator, X, y, train_subset)
-        X_partial_train, y_partial_train = _safe_split(estimator, X, y,
-                                                       partial_train)
-        X_test, y_test = _safe_split(estimator, X, y, test, train_subset)
-        if y_partial_train is None:
-            estimator.partial_fit(X_partial_train, classes=classes)
-        else:
-            estimator.partial_fit(X_partial_train, y_partial_train,
-                                  classes=classes)
-        train_scores.append(_score(estimator, X_train, y_train, scorer))
-        test_scores.append(_score(estimator, X_test, y_test, scorer))
-    return np.array((train_scores, test_scores)).T
 
 
 def validation_curve(estimator, X, y, param_name, param_range, groups=None,
