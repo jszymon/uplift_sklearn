@@ -14,7 +14,7 @@ from sklearn.utils.validation import check_array, check_consistent_length
 from ..utils.validation import check_trt
 
 def _e_satx(y_true, y_pred, trt, n_trt=1, satt=True):
-    """Generic method for SATE and SATT."""
+    """Generic method for e_sate and e_satt."""
     y_true = check_array(y_true, ensure_2d=False)
     y_pred = check_array(y_pred, ensure_2d=False)
     if y_pred.ndim == 1:
@@ -59,10 +59,20 @@ def _e_satx(y_true, y_pred, trt, n_trt=1, satt=True):
 def e_sate(y_true, y_pred, trt, n_trt=1):
     """Absolute error on Sample Average Treatment Effect.
 
-    For multiple treatments, return weighted average."""
+    Works by computing ATE using model predictions and true outcomes.
+    Absolute value of the difference between the two values is returned.
+
+    For multiple treatments, return weighted average.  This measure is
+    not very effective.
+    """
     return _e_satx(y_true, y_pred, trt, n_trt=n_trt, satt=False)
 def e_satt(y_true, y_pred, trt, n_trt=1):
-    """Absolute error on Sample Average Treatment Effect.
+    """Absolute error on Sample Average Treatment Effect on the Treated.
 
-    For multiple treatments, return weighted average."""
+    Works by computing ATT using model predictions and true outcomes.
+    Absolute value of the difference between the two values is returned.
+
+    For multiple treatments, return weighted average.  This measure is
+    not very effective.
+    """
     return _e_satx(y_true, y_pred, trt, n_trt=n_trt, satt=True)
