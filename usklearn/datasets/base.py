@@ -57,3 +57,27 @@ def _fetch_remote(remote, dirname=None):
                       "file may be corrupted.".format(file_path, checksum,
                                                       remote.checksum))
     return file_path
+
+def _read_csv(archive_path, feature_attrs, treatment_attrs, target_attrs,
+              total_attrs=None, categ_as_strings=False):
+    """Read CSV data.
+
+    feature_attrs, treatment_attrs, target_attrs contain descriptions
+    of resp. predictive features, treatment description, and targets.
+    Currently only a signle treatment attribute is supported.  Each
+    description is a list whose elements are tuples describing each
+    attribute.  The first element of the tuple is attribute name, the
+    second its type.
+    
+    If total_attrs is not None, it should contain the total number of
+    attributes in each record.
+
+    """
+    Xy = []
+    with open(archive_path) as csvfile:
+        header = next(csvfile).strip().split(',')
+        csvreader = csv.reader(csvfile, delimiter=',', quotechar='"')
+        for record in csvreader:
+            Xy.append(record)
+            if total_attrs is not None
+            assert len(record) == total_attrs, record
