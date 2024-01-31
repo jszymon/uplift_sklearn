@@ -178,7 +178,7 @@ def fetch_Hillstrom(data_home=None, download_if_missing=True,
         return X, y_visit, y_conversion, y_spend, trt
 
     return Bunch(data=X, target_visit=y_visit, target_conversion=y_conversion,
-                 target_spend=y_spend, treatment=trt,
+                 target_spend=y_spend, treatment=trt, n_trt=2,
                  categ_values=categ_values, treatment_values=treatment_values,
                  feature_names=feature_names, target_names=target_names,
                  DESCR=__doc__)
