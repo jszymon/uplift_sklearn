@@ -10,13 +10,15 @@ for details.
 import logging
 from os.path import dirname, exists, join
 from os import remove, makedirs
-import csv
 
 import numpy as np
 
 from sklearn.datasets import get_data_home
+
 from .base import _fetch_remote
 from .base import RemoteFileMetadata
+from .base import _read_csv
+
 from sklearn.utils import Bunch
 import joblib
 from sklearn.utils import check_random_state
@@ -113,6 +115,20 @@ def fetch_Hillstrom(data_home=None, download_if_missing=True,
                     "zip_code": zip_code_values,
                     "channel": channel_values,}
 
+    # attribute descriptions
+    treatment_descr = [("segment", treatment_values)]
+    target_descr = [("target_visit", np.int32, "visit"),
+                    ("target_conversion", np.int32, "conversion"),
+                    ("target_spend", float, "spend")]
+    feature_descr = [("recency", np.int32),
+                     ("history_segment", history_segment_values),
+                     ("history", float),
+                     ("mens", np.int32),
+                     ("womens", np.int32),
+                     ("zip_code", zip_code_values),
+                     ("newbie", np.int32),
+                     ("channel", channel_values)]
+
     if download_if_missing and not available:
         if not exists(Hillstrom_dir):
             makedirs(Hillstrom_dir)
@@ -121,52 +137,15 @@ def fetch_Hillstrom(data_home=None, download_if_missing=True,
         archive_path = _fetch_remote(ARCHIVE, dirname=Hillstrom_dir)
         #print(archive_path)
         #archive_path = "/home/szymon/scikit_learn_data/usklearn_Hillstrom/Hillstrom.csv"
-        # read the data
-        Xy = []
-        with open(archive_path) as csvfile:
-            header = next(csvfile).strip().split(',')
-            csvreader = csv.reader(csvfile, delimiter=',', quotechar='"')
-            for record in csvreader:
-                Xy.append(record)
-                assert len(record) == 12, record
-        # delete archive
-        remove(archive_path)
-        # decode treatment group
-        trt = [r[8] for r in Xy]
-        if categ_as_strings:
-            trt = np.asarray(trt, dtype="U13")
-        else:
-            trt = [treatment_values.index(t) for t in trt]
-            trt = np.asarray(trt, dtype=np.int32)
-        # decode targets
-        y_visit = np.asarray([int(r[9]) for r in Xy], dtype=np.int32)
-        y_conversion = np.asarray([int(r[10]) for r in Xy], dtype=np.int32)
-        y_spend = np.asarray([float(r[11]) for r in Xy], dtype=float)
-        # decode features
-        if categ_as_strings:
-            dt = [('recency', int),
-                  ('history_segment', 'U16'),
-                  ('history', float),
-                  ('mens', bool),
-                  ('womens', bool),
-                  ('zip_code', 'U9'),
-                  ('newbie', bool),
-                  ('channel', 'U12'),]
-        else:
-            dt = [('recency', int),
-                  ('history_segment', int),
-                  ('history', float),
-                  ('mens', bool),
-                  ('womens', bool),
-                  ('zip_code', int),
-                  ('newbie', bool),
-                  ('channel', int),]
-            for r in Xy:
-                r[1] = history_segment_values.index(r[1])
-                r[5] = zip_code_values.index(r[5])
-                r[7] = channel_values.index(r[7])
-        X = [tuple(r[:-4]) for r in Xy]
-        X = np.asarray(X, dtype=np.dtype(dt))
+
+        ## read the data
+        X, targets, target_names, trt =_read_csv(archive_path, feature_attrs=feature_descr,
+                                   treatment_attrs=treatment_descr,
+                                   target_attrs=target_descr,
+                                   total_attrs=12,
+                                   categ_as_strings=categ_as_strings,
+                                   header=None)
+        y_visit, y_conversion, y_spend = targets
 
         joblib.dump(X, samples_path, compress=9)
         joblib.dump((y_visit, y_conversion, y_spend), targets_path, compress=9)
