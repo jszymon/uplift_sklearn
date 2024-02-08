@@ -6,4 +6,4 @@ data generators.
 
 from .Hillstrom import fetch_Hillstrom
 from .Lalonde import fetch_Lalonde
-from .OrangeChurn import fetch_Orange_churn
+from .TelecomChurn import fetch_telecom_churn
