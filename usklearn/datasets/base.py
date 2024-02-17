@@ -3,13 +3,20 @@
 Essentially copied from sklearn.datasets._base to reduce dependency on
 unofficial sklearn API."""
 
-from collections import namedtuple
+from collections import namedtuple, OrderedDict
 import hashlib
 from urllib.request import urlretrieve
-from os.path import join
+from os.path import join, exists
+from os import remove, makedirs
 import csv
+import logging
 
 import numpy as np
+
+import joblib
+from sklearn.utils import Bunch
+from sklearn.utils import check_random_state
+from sklearn.datasets import get_data_home
 
 RemoteFileMetadata = namedtuple('RemoteFileMetadata',
                                 ['filename', 'url', 'checksum'])
@@ -70,10 +77,10 @@ def _read_csv(archive_path, feature_attrs, treatment_attrs, target_attrs,
     Currently only a signle treatment attribute is supported.  Each
     description is a list whose elements are tuples describing each
     attribute.  The first element of the tuple is attribute's name,
-    the second its type, third elemend (optional) is the name of
-    attribute in the header.  If the type is a sequence, it is assumed
-    to be a list of categories.  Otherwise, type should be a valid
-    numpy dtype.
+    the second its type, third element (optional) is the name of
+    attribute in the CVS header.  If the type is a sequence, it is
+    assumed to be a list of categories.  Otherwise, type should be a
+    valid numpy dtype.
     
     If total_attrs is not None, it should contain the total number of
     attributes in each record.
@@ -115,7 +122,8 @@ def _read_csv(archive_path, feature_attrs, treatment_attrs, target_attrs,
             if total_attrs is not None:
                 assert len(record) == total_attrs, record
     Xy_columns = list(zip(*Xy))
-
+    remove(archive_path)
+    
     # parse treatment
     if len(treatment_attrs) != 1:
         raise RuntimeError("Only one treatment is supported")
@@ -126,12 +134,11 @@ def _read_csv(archive_path, feature_attrs, treatment_attrs, target_attrs,
         treatment_values = [str(i) for i in range(max(x) + 1)]
 
     # parse targets
-    targets = ()
-    target_names = []
+    targets = OrderedDict()
     for a_descr in target_attrs:
         ta, attr_name = parse_attr(Xy_columns, header, a_descr, categ_as_strings)
-        targets = targets + (ta,)
-        target_names.append(attr_name)
+        targets[attr_name] = ta
+    target_names = list(targets.keys())
 
     # predictors
     feature_names = []
@@ -141,16 +148,74 @@ def _read_csv(archive_path, feature_attrs, treatment_attrs, target_attrs,
         feature_names.append(attr_name)
         columns.append(fa)
     X = np.core.records.fromarrays(columns, names=feature_names)
+    categ_values = {a[0]:a[1] for a in feature_attrs if isinstance(a[1], list)}
 
-    return X, targets, target_names, trt
+    # create a Bunch
+    ret = Bunch(data=X, treatment=trt,
+                feature_names=feature_names,
+                target_names=target_names)
+    for attr_name in targets:
+        ret[attr_name] = targets[attr_name]
+    ret.treatment_values=treatment_values
+    ret.n_trt=len(treatment_values)
+    ret.categ_values=categ_values
+    return ret
 
-    #if return_X_y:
-    #    ret = (X,) + tuple(targets.values) + (trt,)
-    #
-    #ret = Bunch(data=X, treatment=trt, n_trt=len(treatment_values),
-    #             categ_values=categ_values, treatment_values=treatment_values,
-    #             feature_names=feature_names, target_names=target_names,
-    #             DESCR=__doc__)
-    #for attr_name in target_names:
-    #    ret[attr_name] = targets[attr_name]
-    #return ret
+def _fetch_remote_csv(remote, dataset_name,
+                      feature_attrs, treatment_attrs, target_attrs,
+                      categ_as_strings=False, return_X_y=False,
+                      download_if_missing=True,
+                      random_state=None, shuffle=False,
+                      header=None, total_attrs=None,
+                      data_home=None, logger=None):
+    if logger is None:
+        logger = logging.getLogger(__name__ + "." + dataset_name)
+    data_home = get_data_home(data_home=data_home)
+    dataset_dir = join(data_home, "uplift_sklearn", dataset_name)
+    if categ_as_strings:
+        dataset_path = join(dataset_dir, "bunch_str")
+    else:
+        dataset_path = join(dataset_dir, "bunch")
+    available = exists(dataset_path)
+
+    if not available and download_if_missing:
+        if not exists(dataset_dir):
+            makedirs(dataset_dir)
+        logger.info("Downloading %s" % remote.url)
+        archive_path = _fetch_remote(remote, dirname=dataset_dir)
+
+        ## read the data
+        D =_read_csv(archive_path, feature_attrs=feature_attrs,
+                     treatment_attrs=treatment_attrs,
+                     target_attrs=target_attrs,
+                     total_attrs=12,
+                     categ_as_strings=categ_as_strings,
+                     header=None)
+
+        joblib.dump(D, dataset_path, compress=9)
+    elif not available and not download_if_missing:
+        raise IOError("Data not found and `download_if_missing` is False")
+
+    # get cached data
+    try:
+        D
+    except NameError:
+        D = joblib.load(dataset_path)
+
+    if shuffle:
+        ind = np.arange(D.data.shape[0])
+        rng = check_random_state(random_state)
+        rng.shuffle(ind)
+        D.data = D.data[ind]
+        D.treatment = D.treatment[ind]
+        for ta in D.target_names:
+            D[ta] = D[ta][ind] 
+
+    if return_X_y:
+        X = D.data
+        targets = tuple(D[tn] for tn in D.target_names)
+        trt = D.trt
+        ret = (X,) + targets + (trt,)
+    else:
+        ret = D
+    return ret
