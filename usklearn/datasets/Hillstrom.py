@@ -104,7 +104,6 @@ def fetch_Hillstrom(data_home=None, download_if_missing=True,
                      ("zip_code", zip_code_values),
                      ("newbie", np.int32),
                      ("channel", channel_values)]
-    descr = """The Hillstrom dataset."""
 
     ret = _fetch_remote_csv(ARCHIVE, "Hillstrom",
                              feature_attrs=feature_descr,
@@ -117,5 +116,5 @@ def fetch_Hillstrom(data_home=None, download_if_missing=True,
                              total_attrs=12
                              )
     if not return_X_y:
-        ret.descr = descr
+        ret.descr = __doc__
     return ret
