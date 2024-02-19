@@ -10,6 +10,7 @@ from os.path import join, exists
 from os import remove, makedirs
 import csv
 import logging
+from inspect import isfunction
 
 import numpy as np
 
@@ -69,7 +70,8 @@ def _fetch_remote(remote, dirname=None):
     return file_path
 
 def _read_csv(archive_path, feature_attrs, treatment_attrs, target_attrs,
-              total_attrs=None, categ_as_strings=False, header=None):
+              total_attrs=None, categ_as_strings=False, header=None,
+              csv_reader_args={"delimiter":",", "quotechar":'"'}):
     """Read CSV data.
 
     feature_attrs, treatment_attrs, target_attrs contain descriptions
@@ -79,8 +81,10 @@ def _read_csv(archive_path, feature_attrs, treatment_attrs, target_attrs,
     attribute.  The first element of the tuple is attribute's name,
     the second its type, third element (optional) is the name of
     attribute in the CVS header.  If the type is a sequence, it is
-    assumed to be a list of categories.  Otherwise, type should be a
-    valid numpy dtype.
+    assumed to be a list of categories.  If the type is a function, it
+    will receive as argument a list of columns values and should
+    return a transformed list and final numpy dtype.  Otherwise, type
+    should be a valid numpy dtype.
     
     If total_attrs is not None, it should contain the total number of
     attributes in each record.
@@ -109,6 +113,8 @@ def _read_csv(archive_path, feature_attrs, treatment_attrs, target_attrs,
                 categs = {c:i for i, c in enumerate(attr_dtype)}
                 x = [categs[c] for c in x]
                 attr_dtype = np.int32
+        elif isfunction(attr_dtype):
+            x, attr_dtype = attr_dtype(x)
         x = np.array(x, dtype=attr_dtype)
         return x, attr_name
 
@@ -116,11 +122,11 @@ def _read_csv(archive_path, feature_attrs, treatment_attrs, target_attrs,
     with open(archive_path) as csvfile:
         if header is None:
             header = next(csvfile).strip().split(',')
-        csvreader = csv.reader(csvfile, delimiter=',', quotechar='"')
+        csvreader = csv.reader(csvfile, **csv_reader_args)
         for record in csvreader:
             Xy.append(record)
             if total_attrs is not None:
-                assert len(record) == total_attrs, record
+                assert len(record) == total_attrs, (record, total_attrs)
     Xy_columns = list(zip(*Xy))
     remove(archive_path)
     
@@ -131,7 +137,7 @@ def _read_csv(archive_path, feature_attrs, treatment_attrs, target_attrs,
     if isinstance(treatment_attrs[0][1], list):
         treatment_values = list(treatment_attrs[0][1])
     else:
-        treatment_values = [str(i) for i in range(max(x) + 1)]
+        treatment_values = [str(i) for i in range(max(trt) + 1)]
 
     # parse targets
     targets = OrderedDict()
@@ -157,7 +163,7 @@ def _read_csv(archive_path, feature_attrs, treatment_attrs, target_attrs,
     for attr_name in targets:
         ret[attr_name] = targets[attr_name]
     ret.treatment_values=treatment_values
-    ret.n_trt=len(treatment_values)
+    ret.n_trt=len(treatment_values)-1
     ret.categ_values=categ_values
     return ret
 
@@ -167,6 +173,7 @@ def _fetch_remote_csv(remote, dataset_name,
                       download_if_missing=True,
                       random_state=None, shuffle=False,
                       header=None, total_attrs=None,
+                      csv_reader_args={"delimiter":",", "quotechar":'"'},
                       data_home=None, logger=None):
     if logger is None:
         logger = logging.getLogger(__name__ + "." + dataset_name)
@@ -188,9 +195,10 @@ def _fetch_remote_csv(remote, dataset_name,
         D =_read_csv(archive_path, feature_attrs=feature_attrs,
                      treatment_attrs=treatment_attrs,
                      target_attrs=target_attrs,
-                     total_attrs=12,
+                     total_attrs=total_attrs,
+                     csv_reader_args=csv_reader_args,
                      categ_as_strings=categ_as_strings,
-                     header=None)
+                     header=header)
 
         joblib.dump(D, dataset_path, compress=9)
     elif not available and not download_if_missing:
