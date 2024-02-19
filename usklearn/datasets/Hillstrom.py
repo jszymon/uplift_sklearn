@@ -103,15 +103,15 @@ def fetch_Hillstrom(data_home=None, download_if_missing=True,
                      ("channel", channel_values)]
 
     ret = _fetch_remote_csv(ARCHIVE, "Hillstrom",
-                             feature_attrs=feature_descr,
-                             treatment_attrs=treatment_descr,
-                             target_attrs=target_descr,
-                             categ_as_strings=categ_as_strings,
-                             return_X_y=return_X_y,
-                             download_if_missing=download_if_missing,
-                             random_state=random_state, shuffle=shuffle,
-                             total_attrs=12
-                             )
+                            feature_attrs=feature_descr,
+                            treatment_attrs=treatment_descr,
+                            target_attrs=target_descr,
+                            categ_as_strings=categ_as_strings,
+                            return_X_y=return_X_y,
+                            download_if_missing=download_if_missing,
+                            random_state=random_state, shuffle=shuffle,
+                            total_attrs=12
+                            )
     if not return_X_y:
         ret.descr = __doc__
     return ret
