@@ -77,9 +77,6 @@ def fetch_Hillstrom(data_home=None, download_if_missing=True,
     """
 
     # dictionaries
-    feature_names = ['recency', 'history_segment', 'history', 'mens', 'womens',
-                     'zip_code', 'newbie','channel']
-    target_names = ["visit", "conversion", "spend"]
     treatment_values = ['No E-Mail', 'Mens E-Mail', 'Womens E-Mail']
     history_segment_values = ['1) $0 - $100', '2) $100 - $200',
                               '3) $200 - $350', '4) $350 - $500',
