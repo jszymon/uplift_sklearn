@@ -9,7 +9,7 @@ for details.
 
 import numpy as np
 
-from .base import _fetch_remote, _fetch_remote_csv
+from .base import _fetch_remote_csv
 from .base import RemoteFileMetadata
 
 
