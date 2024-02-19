@@ -23,7 +23,7 @@ DB = fetch_Lalonde("B")
 print(DB.data.shape)
 D = DB
 X = D.data
-y = np.log1p(D.target)
+y = np.log1p(D.target_RE78)
 trt = D.treatment
 
 r = MultimodelUpliftRegressor()

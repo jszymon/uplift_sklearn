@@ -13,7 +13,7 @@ import csv
 import numpy as np
 
 from sklearn.datasets import get_data_home
-from .base import _fetch_remote
+from .base import _fetch_remote_csv
 from .base import RemoteFileMetadata
 from sklearn.utils import Bunch
 import joblib
@@ -45,6 +45,7 @@ logger = logging.getLogger(__name__)
 
 
 def fetch_Lalonde(version="A", data_home=None,
+                  categ_as_strings=False,
                   download_if_missing=True, random_state=None,
                   shuffle=False, return_X_y=False):
     """Load the Lalonde datasets (uplift regression).
@@ -99,102 +100,167 @@ def fetch_Lalonde(version="A", data_home=None,
 
     """
 
+      
+    #data_home = get_data_home(data_home=data_home)
+    #Lalonde_dir = join(data_home, "uplift_sklearn", "Lalonde")
+    #samples_path = join(Lalonde_dir, "samples" + version_suffix)
+    #targets_path = join(Lalonde_dir, "targets" + version_suffix)
+    #treatment_path = join(Lalonde_dir, "treatment" + version_suffix)
+    #available = exists(samples_path)
+
+    # dictionaries
+    header_A = ['treatment', 'age', 'education', 'Black', 'Hispanic',
+                'married', 'nodegree', 'RE75', 'RE78']
+    header_B = ['treatment', 'age', 'education', 'Black', 'Hispanic',
+                'married', 'nodegree', 'RE74', 'RE75', 'RE78']
+
+    target_names = ["RE78"]
+
+    def _float_to_int(x):
+        return np.array(x, float), np.int32
+    
+    # attribute descriptions
+    treatment_descr = [("treatment", _float_to_int)]
+    target_descr = [("target_RE78", float, "RE78")]
+    feature_descr_all = [("age", _float_to_int),
+                         ("education", _float_to_int),
+                         ("Black", _float_to_int),
+                         ("Hispanic", _float_to_int),
+                         ("married", _float_to_int),
+                         ("nodegree", _float_to_int)]
+    feature_descr_A = feature_descr_all + [("RE75", float)]
+    feature_descr_B = feature_descr_all + [("RE74", float), ("RE75", float)]
+    csv_reader_args = {"delimiter":' ', "skipinitialspace":True}
+    
+    # choose version
     if version == "A":
         version_suffix = "_A"
         arch_t = ARCHIVE_A_T
         arch_c = ARCHIVE_A_C
         n_fields = 9
+        header = header_A
+        feature_descr = feature_descr_A
     elif version == "B":
         version_suffix = "_B"
         arch_t = ARCHIVE_B_T
         arch_c = ARCHIVE_B_C
         n_fields = 10
+        header = header_B
+        feature_descr = feature_descr_B
     else:
         raise ValueError("Lalonde dataset version must be A or B")
-        
-    data_home = get_data_home(data_home=data_home)
-    Lalonde_dir = join(data_home, "uplift_sklearn", "Lalonde")
-    samples_path = join(Lalonde_dir, "samples" + version_suffix)
-    targets_path = join(Lalonde_dir, "targets" + version_suffix)
-    treatment_path = join(Lalonde_dir, "treatment" + version_suffix)
-    available = exists(samples_path)
 
-    # dictionaries
-    feature_names_A = ['age', 'education', 'Black', 'Hispanic',
-                       'married', 'nodegree', 'RE75']
-    feature_names_B = ['age', 'education', 'Black', 'Hispanic',
-                       'married', 'nodegree', 'RE74', 'RE75']
-    if version == "A":
-        feature_names = feature_names_A
-    elif version == "B":
-        feature_names = feature_names_B
-    else:
-        assert False
-    target_names = ["RE78"]
-    treatment_values = ['not treated', 'treated']
 
-    if download_if_missing and not available:
-        if not exists(Lalonde_dir):
-            makedirs(Lalonde_dir)
-        logger.info("Downloading %s" % arch_t.url)
-        archive_path_T = _fetch_remote(arch_t, dirname=Lalonde_dir)
-        logger.info("Downloading %s" % arch_c.url)
-        archive_path_C = _fetch_remote(arch_c, dirname=Lalonde_dir)
-        #print(archive_path)
-        #archive_path = "/home/szymon/scikit_learn_data/usklearn_Lalonde/Hillstrom.csv"
-        # read the data
-        Xy_T = []
-        Xy_C = []
-        for archive_path in (archive_path_T, archive_path_C):
-            is_T = (archive_path == archive_path_T)
-            Xy = Xy_T if is_T else Xy_C
-            with open(archive_path) as csvfile:
-                csvreader = csv.reader(csvfile, delimiter=' ',
-                                       skipinitialspace=True)
-                for record in csvreader:
-                    record[0] = int(round(float(record[0])))
-                    if is_T:
-                        assert record[0] == 1
-                    else:
-                        assert record[0] == 0
-                    Xy.append(record)
-                    assert len(record) == n_fields, record
-            # delete archive
-            remove(archive_path)
-        Xy = Xy_T + Xy_C
-        # decode treatment group
-        trt = np.asarray([r[0] for r in Xy], dtype=np.int32)
-        # decode targets
-        y = np.asarray([float(r[-1]) for r in Xy], dtype=np.float)
-        X = [tuple(r[1:-1]) for r in Xy]
-        X = np.asarray(X, dtype=np.float)
 
-        joblib.dump(X, samples_path, compress=9)
-        joblib.dump(y, targets_path, compress=9)
-        joblib.dump(trt, treatment_path, compress=9)
-
-    elif not available and not download_if_missing:
-        raise IOError("Data not found and `download_if_missing` is False")
-
-    try:
-        X, y, trt
-    except NameError:
-        X = joblib.load(samples_path)
-        y = joblib.load(targets_path)
-        trt = joblib.load(treatment_path)
+    D_T = _fetch_remote_csv(arch_t, "Lalonde"+version_suffix,
+                            feature_attrs=feature_descr,
+                            treatment_attrs=treatment_descr,
+                            target_attrs=target_descr,
+                            categ_as_strings=categ_as_strings,
+                            return_X_y=False,
+                            download_if_missing=download_if_missing,
+                            random_state=random_state, shuffle=False,
+                            total_attrs=n_fields, header=header,
+                            csv_reader_args=csv_reader_args
+                            )
+    D_C = _fetch_remote_csv(arch_c, "Lalonde"+version_suffix,
+                            feature_attrs=feature_descr,
+                            treatment_attrs=treatment_descr,
+                            target_attrs=target_descr,
+                            categ_as_strings=categ_as_strings,
+                            return_X_y=False,
+                            download_if_missing=download_if_missing,
+                            random_state=random_state, shuffle=False,
+                            total_attrs=n_fields, header=header,
+                            csv_reader_args=csv_reader_args
+                            )
+    # combine treatment and control datasets
+    D = D_C
+    D.data = np.concatenate([D_C.data, D_T.data])
+    D.treatment = np.concatenate([D_C.treatment, D_T.treatment])
+    D.target_RE78 = np.concatenate([D_C.target_RE78, D_T.target_RE78])
 
     if shuffle:
-        ind = np.arange(X.shape[0])
+        ind = np.arange(D.data.shape[0])
         rng = check_random_state(random_state)
         rng.shuffle(ind)
-        X = X[ind]
-        trt = trt[ind]
-        y = y[ind]
+        D.data = D.data[ind]
+        D.treatment = D.treatment[ind]
+        for ta in D.target_names:
+            D[ta] = D[ta][ind] 
 
     if return_X_y:
-        return X, y, trt
+        X = D.data
+        targets = tuple(D[tn] for tn in D.target_names)
+        trt = D.trt
+        ret = (X,) + targets + (trt,)
+    else:
+        ret = D
+        ret.descr = __doc__
+    return ret
 
-    return Bunch(data=X, target=y, treatment=trt,
-                 treatment_values=treatment_values,
-                 feature_names=feature_names, target_names=target_names,
-                 DESCR=__doc__)
+    #if download_if_missing and not available:
+    #    if not exists(Lalonde_dir):
+    #        makedirs(Lalonde_dir)
+    #    logger.info("Downloading %s" % arch_t.url)
+    #    archive_path_T = _fetch_remote(arch_t, dirname=Lalonde_dir)
+    #    logger.info("Downloading %s" % arch_c.url)
+    #    archive_path_C = _fetch_remote(arch_c, dirname=Lalonde_dir)
+    #    #print(archive_path)
+    #    #archive_path = "/home/szymon/scikit_learn_data/usklearn_Lalonde/Hillstrom.csv"
+    #    # read the data
+    #    Xy_T = []
+    #    Xy_C = []
+    #    for archive_path in (archive_path_T, archive_path_C):
+    #        is_T = (archive_path == archive_path_T)
+    #        Xy = Xy_T if is_T else Xy_C
+    #        with open(archive_path) as csvfile:
+    #            csvreader = csv.reader(csvfile, delimiter=' ',
+    #                                   skipinitialspace=True)
+    #            for record in csvreader:
+    #                record[0] = int(round(float(record[0])))
+    #                if is_T:
+    #                    assert record[0] == 1
+    #                else:
+    #                    assert record[0] == 0
+    #                Xy.append(record)
+    #                assert len(record) == n_fields, record
+    #        # delete archive
+    #        remove(archive_path)
+    #    Xy = Xy_T + Xy_C
+    #    # decode treatment group
+    #    trt = np.asarray([r[0] for r in Xy], dtype=np.int32)
+    #    # decode targets
+    #    y = np.asarray([float(r[-1]) for r in Xy], dtype=np.float)
+    #    X = [tuple(r[1:-1]) for r in Xy]
+    #    X = np.asarray(X, dtype=np.float)
+    #
+    #    joblib.dump(X, samples_path, compress=9)
+    #    joblib.dump(y, targets_path, compress=9)
+    #    joblib.dump(trt, treatment_path, compress=9)
+    #
+    #elif not available and not download_if_missing:
+    #    raise IOError("Data not found and `download_if_missing` is False")
+    #
+    #try:
+    #    X, y, trt
+    #except NameError:
+    #    X = joblib.load(samples_path)
+    #    y = joblib.load(targets_path)
+    #    trt = joblib.load(treatment_path)
+    #
+    #if shuffle:
+    #    ind = np.arange(X.shape[0])
+    #    rng = check_random_state(random_state)
+    #    rng.shuffle(ind)
+    #    X = X[ind]
+    #    trt = trt[ind]
+    #    y = y[ind]
+    #
+    #if return_X_y:
+    #    return X, y, trt
+    #
+    #return Bunch(data=X, target=y, treatment=trt,
+    #             treatment_values=treatment_values,
+    #             feature_names=feature_names, target_names=target_names,
+    #             DESCR=__doc__)
