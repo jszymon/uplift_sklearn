@@ -167,6 +167,25 @@ def _read_csv(archive_path, feature_attrs, treatment_attrs, target_attrs,
     ret.categ_values=categ_values
     return ret
 
+def _prepare_final_data(D, shuffle, return_X_y):
+    if shuffle:
+        ind = np.arange(D.data.shape[0])
+        rng = check_random_state(random_state)
+        rng.shuffle(ind)
+        D.data = D.data[ind]
+        D.treatment = D.treatment[ind]
+        for ta in D.target_names:
+            D[ta] = D[ta][ind] 
+
+    if return_X_y:
+        X = D.data
+        targets = tuple(D[tn] for tn in D.target_names)
+        trt = D.trt
+        ret = (X,) + targets + (trt,)
+    else:
+        ret = D
+    return ret
+
 def _fetch_remote_csv(remote, dataset_name,
                       feature_attrs, treatment_attrs, target_attrs,
                       categ_as_strings=False, return_X_y=False,
@@ -222,20 +241,6 @@ def _fetch_remote_csv(remote, dataset_name,
                 D.data[i] = c.astype(object)
         D.data = np.column_stack(D.data)
 
-    if shuffle:
-        ind = np.arange(D.data.shape[0])
-        rng = check_random_state(random_state)
-        rng.shuffle(ind)
-        D.data = D.data[ind]
-        D.treatment = D.treatment[ind]
-        for ta in D.target_names:
-            D[ta] = D[ta][ind] 
-
-    if return_X_y:
-        X = D.data
-        targets = tuple(D[tn] for tn in D.target_names)
-        trt = D.trt
-        ret = (X,) + targets + (trt,)
-    else:
-        ret = D
+    # final returned data
+    ret = _prepare_final_data(D, shuffle, return_X_y)
     return ret

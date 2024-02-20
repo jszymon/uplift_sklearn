@@ -14,6 +14,7 @@ import numpy as np
 
 from sklearn.datasets import get_data_home
 from .base import _fetch_remote_csv
+from .base import _prepare_final_data
 from .base import RemoteFileMetadata
 from sklearn.utils import Bunch
 import joblib
@@ -182,6 +183,7 @@ def fetch_Lalonde(version="A", data_home=None,
                             csv_reader_args=csv_reader_args
                             )
     assert np.all(D_C.treatment == 0)
+
     # combine treatment and control datasets
     D = D_C
     if as_frame:
@@ -192,87 +194,8 @@ def fetch_Lalonde(version="A", data_home=None,
     D.treatment = np.concatenate([D_C.treatment, D_T.treatment])
     D.target_RE78 = np.concatenate([D_C.target_RE78, D_T.target_RE78])
 
-    if shuffle:
-        ind = np.arange(D.data.shape[0])
-        rng = check_random_state(random_state)
-        rng.shuffle(ind)
-        D.data = D.data[ind]
-        D.treatment = D.treatment[ind]
-        for ta in D.target_names:
-            D[ta] = D[ta][ind] 
-
-    if return_X_y:
-        X = D.data
-        targets = tuple(D[tn] for tn in D.target_names)
-        trt = D.trt
-        ret = (X,) + targets + (trt,)
-    else:
-        ret = D
+    # prepare final return value
+    ret = _prepare_final_data(D, shuffle, return_X_y)
+    if not return_X_y:
         ret.descr = __doc__
     return ret
-
-    #if download_if_missing and not available:
-    #    if not exists(Lalonde_dir):
-    #        makedirs(Lalonde_dir)
-    #    logger.info("Downloading %s" % arch_t.url)
-    #    archive_path_T = _fetch_remote(arch_t, dirname=Lalonde_dir)
-    #    logger.info("Downloading %s" % arch_c.url)
-    #    archive_path_C = _fetch_remote(arch_c, dirname=Lalonde_dir)
-    #    #print(archive_path)
-    #    #archive_path = "/home/szymon/scikit_learn_data/usklearn_Lalonde/Hillstrom.csv"
-    #    # read the data
-    #    Xy_T = []
-    #    Xy_C = []
-    #    for archive_path in (archive_path_T, archive_path_C):
-    #        is_T = (archive_path == archive_path_T)
-    #        Xy = Xy_T if is_T else Xy_C
-    #        with open(archive_path) as csvfile:
-    #            csvreader = csv.reader(csvfile, delimiter=' ',
-    #                                   skipinitialspace=True)
-    #            for record in csvreader:
-    #                record[0] = int(round(float(record[0])))
-    #                if is_T:
-    #                    assert record[0] == 1
-    #                else:
-    #                    assert record[0] == 0
-    #                Xy.append(record)
-    #                assert len(record) == n_fields, record
-    #        # delete archive
-    #        remove(archive_path)
-    #    Xy = Xy_T + Xy_C
-    #    # decode treatment group
-    #    trt = np.asarray([r[0] for r in Xy], dtype=np.int32)
-    #    # decode targets
-    #    y = np.asarray([float(r[-1]) for r in Xy], dtype=np.float)
-    #    X = [tuple(r[1:-1]) for r in Xy]
-    #    X = np.asarray(X, dtype=np.float)
-    #
-    #    joblib.dump(X, samples_path, compress=9)
-    #    joblib.dump(y, targets_path, compress=9)
-    #    joblib.dump(trt, treatment_path, compress=9)
-    #
-    #elif not available and not download_if_missing:
-    #    raise IOError("Data not found and `download_if_missing` is False")
-    #
-    #try:
-    #    X, y, trt
-    #except NameError:
-    #    X = joblib.load(samples_path)
-    #    y = joblib.load(targets_path)
-    #    trt = joblib.load(treatment_path)
-    #
-    #if shuffle:
-    #    ind = np.arange(X.shape[0])
-    #    rng = check_random_state(random_state)
-    #    rng.shuffle(ind)
-    #    X = X[ind]
-    #    trt = trt[ind]
-    #    y = y[ind]
-    #
-    #if return_X_y:
-    #    return X, y, trt
-    #
-    #return Bunch(data=X, target=y, treatment=trt,
-    #             treatment_values=treatment_values,
-    #             feature_names=feature_names, target_names=target_names,
-    #             DESCR=__doc__)

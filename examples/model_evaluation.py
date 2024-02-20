@@ -12,30 +12,32 @@ from usklearn.model_selection import (cross_val_predict,
                                       permutation_test_score,
                                       learning_curve)
 
-#D = fetch_Lalonde("B")
-#X = D.data
-#y = np.log1p(D.target)
-#trt = D.treatment
-
-def encode_features(D):
-    """Convert features to float matrix.
-
-    Use K-1 encoding for categorical variables."""
+if False:
+    D = fetch_Lalonde("B", as_frame=False)
     X = D.data
-    cols = []
-    for c in D.feature_names:
-        if c not in D.categ_values:
-            cols.append(np.asfarray(X[c]))
-        else:
-            n_categs = len(D.categ_values[c])
-            x = np.eye(n_categs)[X[c]]
-            cols.append(x[:,:-1]) # skip last category
-    return np.column_stack(cols)
-D = fetch_Hillstrom(as_frame=True)
-X = encode_features(D)
-y = np.log1p(D.target_spend)
-trt = D.treatment
-trt[trt==2] = 1
+    y = np.log1p(D.target_RE78)
+    trt = D.treatment
+
+if True:
+    def encode_features(D):
+        """Convert features to float matrix.
+
+        Use K-1 encoding for categorical variables."""
+        X = D.data
+        cols = []
+        for c in D.feature_names:
+            if c not in D.categ_values:
+                cols.append(np.asfarray(X[c]))
+            else:
+                n_categs = len(D.categ_values[c])
+                x = np.eye(n_categs)[X[c]]
+                cols.append(x[:,:-1]) # skip last category
+        return np.column_stack(cols)
+    D = fetch_Hillstrom(as_frame=True)
+    X = encode_features(D)
+    y = np.log1p(D.target_spend)
+    trt = D.treatment
+    trt[trt==2] = 1
 
 
 r = MultimodelUpliftRegressor()
