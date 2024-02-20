@@ -153,11 +153,11 @@ def _read_csv(archive_path, feature_attrs, treatment_attrs, target_attrs,
         fa, attr_name = parse_attr(Xy_columns, header, a_descr, categ_as_strings)
         feature_names.append(attr_name)
         columns.append(fa)
-    X = np.core.records.fromarrays(columns, names=feature_names)
     categ_values = {a[0]:a[1] for a in feature_attrs if isinstance(a[1], list)}
+    #X = np.core.records.fromarrays(columns, names=feature_names)
 
     # create a Bunch
-    ret = Bunch(data=X, treatment=trt,
+    ret = Bunch(data=columns, treatment=trt,
                 feature_names=feature_names,
                 target_names=target_names)
     for attr_name in targets:
@@ -170,6 +170,7 @@ def _read_csv(archive_path, feature_attrs, treatment_attrs, target_attrs,
 def _fetch_remote_csv(remote, dataset_name,
                       feature_attrs, treatment_attrs, target_attrs,
                       categ_as_strings=False, return_X_y=False,
+                      as_frame=False,
                       download_if_missing=True,
                       random_state=None, shuffle=False,
                       header=None, total_attrs=None,
@@ -209,6 +210,17 @@ def _fetch_remote_csv(remote, dataset_name,
         D
     except NameError:
         D = joblib.load(dataset_path)
+
+    # change columns into a table
+    if as_frame:
+        import pandas
+        D.data = pandas.DataFrame(OrderedDict(zip(D.feature_names, D.data)))
+    else:
+        all_float = all((x.dtype.kind=="f") for x in D.data)
+        if not all_float:
+            for i, c in enumerate(D.data):
+                D.data[i] = c.astype(object)
+        D.data = np.column_stack(D.data)
 
     if shuffle:
         ind = np.arange(D.data.shape[0])

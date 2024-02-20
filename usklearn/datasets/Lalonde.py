@@ -47,7 +47,8 @@ logger = logging.getLogger(__name__)
 def fetch_Lalonde(version="A", data_home=None,
                   categ_as_strings=False,
                   download_if_missing=True, random_state=None,
-                  shuffle=False, return_X_y=False):
+                  shuffle=False, return_X_y=False,
+                  as_frame=False):
     """Load the Lalonde datasets (uplift regression).
 
     Download it if necessary.
@@ -81,6 +82,11 @@ def fetch_Lalonde(version="A", data_home=None,
     return_X_y : boolean, default=False.
         If True, returns ``(data.data, data.target)`` instead of a Bunch
         object.
+
+    as_frame : boolean, default=False
+        If True features are returned as pandas DataFrame.  If False
+        features are returned as object or float array.  Float array
+        is returned if all features are floats.
 
     Returns
     -------
@@ -122,12 +128,12 @@ def fetch_Lalonde(version="A", data_home=None,
     # attribute descriptions
     treatment_descr = [("treatment", _float_to_int)]
     target_descr = [("target_RE78", float, "RE78")]
-    feature_descr_all = [("age", _float_to_int),
-                         ("education", _float_to_int),
-                         ("Black", _float_to_int),
-                         ("Hispanic", _float_to_int),
-                         ("married", _float_to_int),
-                         ("nodegree", _float_to_int)]
+    feature_descr_all = [("age", float),
+                         ("education", float),
+                         ("Black", float),
+                         ("Hispanic", float),
+                         ("married", float),
+                         ("nodegree", float)]
     feature_descr_A = feature_descr_all + [("RE75", float)]
     feature_descr_B = feature_descr_all + [("RE74", float), ("RE75", float)]
     csv_reader_args = {"delimiter":' ', "skipinitialspace":True}
@@ -152,31 +158,37 @@ def fetch_Lalonde(version="A", data_home=None,
 
 
 
-    D_T = _fetch_remote_csv(arch_t, "Lalonde"+version_suffix,
+    D_T = _fetch_remote_csv(arch_t, "Lalonde_T"+version_suffix,
                             feature_attrs=feature_descr,
                             treatment_attrs=treatment_descr,
                             target_attrs=target_descr,
                             categ_as_strings=categ_as_strings,
-                            return_X_y=False,
+                            return_X_y=False, as_frame=as_frame,
                             download_if_missing=download_if_missing,
                             random_state=random_state, shuffle=False,
                             total_attrs=n_fields, header=header,
                             csv_reader_args=csv_reader_args
                             )
-    D_C = _fetch_remote_csv(arch_c, "Lalonde"+version_suffix,
+    assert np.all(D_T.treatment == 1)
+    D_C = _fetch_remote_csv(arch_c, "Lalonde_C"+version_suffix,
                             feature_attrs=feature_descr,
                             treatment_attrs=treatment_descr,
                             target_attrs=target_descr,
                             categ_as_strings=categ_as_strings,
-                            return_X_y=False,
+                            return_X_y=False, as_frame=as_frame,
                             download_if_missing=download_if_missing,
                             random_state=random_state, shuffle=False,
                             total_attrs=n_fields, header=header,
                             csv_reader_args=csv_reader_args
                             )
+    assert np.all(D_C.treatment == 0)
     # combine treatment and control datasets
     D = D_C
-    D.data = np.concatenate([D_C.data, D_T.data])
+    if as_frame:
+        import pandas
+        D.data = pandas.concat([D_C.data, D_T.data], ignore_index=True)
+    else:
+        D.data = np.concatenate([D_C.data, D_T.data])
     D.treatment = np.concatenate([D_C.treatment, D_T.treatment])
     D.target_RE78 = np.concatenate([D_C.target_RE78, D_T.target_RE78])
 

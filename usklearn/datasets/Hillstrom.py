@@ -24,7 +24,8 @@ ARCHIVE = RemoteFileMetadata(
 
 def fetch_Hillstrom(data_home=None, download_if_missing=True,
                     random_state=None, shuffle=False,
-                    categ_as_strings=False, return_X_y=False):
+                    categ_as_strings=False, return_X_y=False,
+                    as_frame=False):
     """Load the Hillstrom dataset (uplift classification and regression).
 
     Download it if necessary.
@@ -53,6 +54,11 @@ def fetch_Hillstrom(data_home=None, download_if_missing=True,
         If True, returns ``(data.data, data.target)`` instead of a Bunch
         object.
 
+    as_frame : boolean, default=False
+        If True features are returned as pandas DataFrame.  If False
+        features are returned as object or float array.  Float array
+        is returned if all features are floats.
+    
     Returns
     -------
     dataset : dict-like object with the following attributes:
@@ -74,6 +80,7 @@ def fetch_Hillstrom(data_home=None, download_if_missing=True,
 
     (data, target_visit, target_conversion, target_spend) : tuple if
         ``return_X_y`` is True
+
     """
 
     # dictionaries
@@ -107,7 +114,7 @@ def fetch_Hillstrom(data_home=None, download_if_missing=True,
                             treatment_attrs=treatment_descr,
                             target_attrs=target_descr,
                             categ_as_strings=categ_as_strings,
-                            return_X_y=return_X_y,
+                            return_X_y=return_X_y, as_frame=as_frame,
                             download_if_missing=download_if_missing,
                             random_state=random_state, shuffle=shuffle,
                             total_attrs=12

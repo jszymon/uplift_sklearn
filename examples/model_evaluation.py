@@ -31,7 +31,7 @@ def encode_features(D):
             x = np.eye(n_categs)[X[c]]
             cols.append(x[:,:-1]) # skip last category
     return np.column_stack(cols)
-D = fetch_Hillstrom()
+D = fetch_Hillstrom(as_frame=True)
 X = encode_features(D)
 y = np.log1p(D.target_spend)
 trt = D.treatment
