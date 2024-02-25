@@ -1,4 +1,5 @@
 from .regression import e_sate, e_satt
+from .curves import uplift_curve
 from ._scorer import (
     make_uplift_scorer,
     check_uplift_scoring,
