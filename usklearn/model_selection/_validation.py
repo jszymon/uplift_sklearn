@@ -211,7 +211,7 @@ def uplift_check_cv(cv, y, trt, n_trt, *, classifier=False):
     if classifier:
         le = LabelEncoder()
         y_stratify = le.fit_transform(y)
-        y_stratify = y_stratify * n_trt + trt
+        y_stratify = y_stratify * (n_trt+1) + trt
     else:
         y_stratify = trt
     # classifier=True ensures stratification
