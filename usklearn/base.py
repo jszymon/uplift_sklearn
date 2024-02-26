@@ -4,12 +4,7 @@ from sklearn.base import BaseEstimator
 
 from .metrics import e_sate
 
-class UpliftRegressorMixin(object):
-    _estimator_type = "regressor"
-    _uplift_model = True
-
-    def score(self, X, y, trt, n_trt=None, sample_weight=None):
-        return -e_sate(y, self.predict(X), trt, n_trt=self.n_trt_)
+class _BaseUpliftMixin:
     def predict_action(self, X):
         """Predict most beneficial action."""
         y = self.predict(X)
@@ -20,6 +15,22 @@ class UpliftRegressorMixin(object):
             best_y = np.max(y, axis=1)
             a[best_y <= 0] == 0
         return a
+    
+class UpliftRegressorMixin(_BaseUpliftMixin):
+    _estimator_type = "regressor"
+    _uplift_model = True
+
+    def score(self, X, y, trt, n_trt=None, sample_weight=None):
+        return -e_sate(y, self.predict(X), trt, n_trt=self.n_trt_)
+
+class UpliftClassifierMixin(_BaseUpliftMixin):
+    _estimator_type = "classifier"
+    _uplift_model = True
+
+    def score(self, X, y, trt, n_trt=None, sample_weight=None):
+        raise NotImplementedError()
+        return -e_sate(y, self.predict(X), trt, n_trt=self.n_trt_)
+
 
 class UpliftTransformerMixin(object):
     def fit_transform(self, X, y=None, trt=None, n_trt=None, **fit_params):
