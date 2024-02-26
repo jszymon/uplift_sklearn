@@ -49,22 +49,32 @@ y = y[mask]
 trt = (trt[mask] == 2)*1
 n_trt = 1
 
+n_iter = 100
+
 base_classifier = Pipeline([("scaler", StandardScaler()),
                             ("logistic", LogisticRegression(max_iter=100))])
 models = [MultimodelUpliftRegressor(),
           MultimodelUpliftClassifier(base_estimator=base_classifier)]
-cv, y_stratify = uplift_check_cv(StratifiedShuffleSplit(test_size=10000, random_state=123),
+cv, y_stratify = uplift_check_cv(StratifiedShuffleSplit(test_size=10000,
+                                                        n_splits=n_iter,
+                                                        random_state=123),
                                  y, trt, n_trt, classifier=True)
+
 colors = "rgbk"
+avg_x = np.linspace(0,1,1000)
+avg_u = np.zeros((len(models), len(avg_x)))
+
 for train_index, test_index in cv.split(X, y_stratify):
-    print((y[test_index]).sum())
     for mi, m in enumerate(models):
         m.fit(X[train_index], y[train_index], trt[train_index], n_trt)
         score = m.predict(X[test_index])
         if is_classifier(m):
             score = score[:,1]
         x, u = uplift_curve(y[test_index], score, trt[test_index], n_trt)
-        plt.plot(x, u, color=colors[mi], alpha=0.3)
+        plt.plot(x, u, color=colors[mi], alpha=0.05)
 
+        avg_u[mi] += np.interp(avg_x, x, u)
 
+for mi, m in enumerate(models):
+    plt.plot(avg_x, avg_u[mi]/n_iter, color=colors[mi], lw=3)
 plt.show()
