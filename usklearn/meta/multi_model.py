@@ -1,11 +1,6 @@
 """Uplift models based on multiple classification/regression models."""
 
 import numpy as np
-from scipy.linalg.lapack import get_lapack_funcs, _compute_lwork
-from scipy.linalg.misc import LinAlgError, LinAlgWarning
-from scipy import linalg
-from scipy.linalg import lstsq
-import scipy.sparse as sp
 from sklearn.base import BaseEstimator, clone
 from sklearn.utils import check_X_y, check_consistent_length
 from sklearn.linear_model import LinearRegression
