@@ -2,6 +2,8 @@
 
 from .multi_model import MultimodelUpliftRegressor
 from .multi_model import MultimodelUpliftLinearRegressor
+from .multi_model import MultimodelUpliftClassifier
 
 __all__ = ["MultimodelUpliftRegressor",
-           "MultimodelUpliftLinearRegressor"]
+           "MultimodelUpliftLinearRegressor",
+           "MultimodelUpliftClassifier"]
