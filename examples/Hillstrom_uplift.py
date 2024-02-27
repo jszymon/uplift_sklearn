@@ -17,6 +17,8 @@ from sklearn.preprocessing import StandardScaler
 from usklearn.datasets import fetch_Hillstrom
 from usklearn.meta import MultimodelUpliftRegressor
 from usklearn.meta import MultimodelUpliftClassifier
+from usklearn.meta import TreatmentUpliftClassifier
+from usklearn.meta import ResponseUpliftClassifier
 from usklearn.metrics import uplift_curve
 from usklearn.model_selection import cross_validate, cross_val_score, uplift_check_cv
 
@@ -54,7 +56,10 @@ n_iter = 100
 base_classifier = Pipeline([("scaler", StandardScaler()),
                             ("logistic", LogisticRegression(max_iter=100))])
 models = [MultimodelUpliftRegressor(),
-          MultimodelUpliftClassifier(base_estimator=base_classifier)]
+          MultimodelUpliftClassifier(base_estimator=base_classifier),
+          TreatmentUpliftClassifier(base_estimator=base_classifier),
+          ResponseUpliftClassifier(base_estimator=base_classifier),
+          ]
 cv, y_stratify = uplift_check_cv(StratifiedShuffleSplit(test_size=10000,
                                                         n_splits=n_iter,
                                                         random_state=123),

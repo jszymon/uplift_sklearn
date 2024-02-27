@@ -13,16 +13,26 @@ from ..utils import check_trt
 
 
 class _MultimodelUpliftModel(_BaseComposition):
-    """Base class fot multimodels (T-learners)."""
-    def __init__(self, base_estimator, prediction_method):
+    """Base class fot multimodels (T-learners).
+
+    if ignore_control is set to True, response model on treatment is
+    built.
+
+    """
+    def __init__(self, base_estimator, prediction_method,
+                 ignore_control=False):
         self.base_estimator = base_estimator
         self.prediction_method = prediction_method
+        self.ignore_control = ignore_control
     def _check_base_estimator(self, n_models):
         if hasattr(self.base_estimator, "fit"):
             estimator_list = []
             for i in range(n_models):
                 name = "model_c" if i == 0 else "model_t" + str(i-1)
-                estimator_list.append((name, clone(self.base_estimator)))
+                if self.ignore_control and i == 0:
+                    estimator_list.append((name, None))
+                else:
+                    estimator_list.append((name, clone(self.base_estimator)))
         else:
             estimator_list = self.base_estimator
         return estimator_list
@@ -34,8 +44,10 @@ class _MultimodelUpliftModel(_BaseComposition):
         self._set_fit_params(y, trt, n_trt)
         self.n_models_ = self.n_trt_ + 1
         self.models_ = self._check_base_estimator(self.n_models_)
-        self.n_ = np.empty(self.n_models_, dtype=int)
+        self.n_ = np.zeros(self.n_models_, dtype=int)
         for i in range(self.n_models_):
+            if self.ignore_control and i == 0:
+                continue
             mi = self.models_[i][1]
             ind = (trt==i)
             self.n_[i] = ind.sum()
@@ -46,7 +58,10 @@ class _MultimodelUpliftModel(_BaseComposition):
     def _predict_diffs(self, X):
         """Predict differences between model predictions for each
         treatment."""
-        y_control = getattr(self.models_[0][1], self.prediction_method)(X)
+        if self.ignore_control:
+            y_control = 0
+        else:
+            y_control = getattr(self.models_[0][1], self.prediction_method)(X)
         pred_diffs = [getattr(self.models_[i+1][1], self.prediction_method)(X)
                       - y_control for i in range(self.n_trt_)]
         return pred_diffs
@@ -121,8 +136,8 @@ class MultimodelUpliftClassifier(_MultimodelUpliftModel, UpliftClassifierMixin):
         is given it will be cloned for every treatment.
 
     """
-    def __init__(self, base_estimator=LogisticRegression()):
-        super().__init__(base_estimator, "predict_proba")
+    def __init__(self, base_estimator=LogisticRegression(), **kwargs):
+        super().__init__(base_estimator, "predict_proba", **kwargs)
     def predict(self, X):
         pred_diffs = self._predict_diffs(X)
         if self.n_trt_ == 1:
@@ -131,6 +146,21 @@ class MultimodelUpliftClassifier(_MultimodelUpliftModel, UpliftClassifierMixin):
             y = np.dstack(pred_diffs)
         return y
 
+class TreatmentUpliftClassifier(MultimodelUpliftClassifier):
+    """Predict uplift based on treatment classifiers.
+
+    Ignore control."""
+    def __init__(self, base_estimator=LogisticRegression()):
+        super().__init__(base_estimator, ignore_control=True)
+class ResponseUpliftClassifier(TreatmentUpliftClassifier):
+    """Predict uplift using a classifier built on full data.
+
+    Ignore causal nature of the data."""
+    def fit(self, X, y, trt, n_trt=None):
+        n = X.shape[0]
+        trt = np.ones(n, dtype=np.int32)
+        n_trt = 1
+        super().fit(X, y, trt, n_trt)
 
 class MultimodelUpliftLinearRegressor(MultimodelUpliftRegressor, LinearModel):
     """Uplift regressor with coef_ and intercept_ fields."""
