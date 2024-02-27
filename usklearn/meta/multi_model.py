@@ -28,8 +28,10 @@ class _MultimodelUpliftModel(_BaseComposition):
         return estimator_list
     def fit(self, X, y, trt, n_trt=None):
         X, y = check_X_y(X, y, accept_sparse="csr")
-        self.trt_, self.n_trt_ = check_trt(trt, n_trt)
-        check_consistent_length(X, y, self.trt_)
+        trt, n_trt = check_trt(trt, n_trt)
+        check_consistent_length(X, y, trt)
+
+        self._set_fit_params(y, trt, n_trt)
         self.n_models_ = self.n_trt_ + 1
         self.models_ = self._check_base_estimator(self.n_models_)
         self.n_ = np.empty(self.n_models_, dtype=int)
@@ -41,15 +43,13 @@ class _MultimodelUpliftModel(_BaseComposition):
             yi = y[ind]
             mi.fit(Xi, yi)
         return self
-    def predict(self, X):
+    def _predict_diffs(self, X):
+        """Predict differences between model predictions for each
+        treatment."""
         y_control = getattr(self.models_[0][1], self.prediction_method)(X)
-        cols = [getattr(self.models_[i+1][1], self.prediction_method)(X) - y_control
-                    for i in range(self.n_trt_)]
-        if self.n_trt_ == 1:
-            y = cols[0]
-        else:
-            y = np.column_stack(cols)
-        return y
+        pred_diffs = [getattr(self.models_[i+1][1], self.prediction_method)(X)
+                      - y_control for i in range(self.n_trt_)]
+        return pred_diffs
 
     def get_params(self, deep=True):
         """Get parameters for this estimator.
@@ -96,6 +96,13 @@ class MultimodelUpliftRegressor(_MultimodelUpliftModel, UpliftRegressorMixin):
     """
     def __init__(self, base_estimator=LinearRegression()):
         super().__init__(base_estimator, "predict")
+    def predict(self, X):
+        pred_diffs = self._predict_diffs(X)
+        if self.n_trt_ == 1:
+            y = pred_diffs[0]
+        else:
+            y = np.column_stack(pred_diffs)
+        return y
 
 class MultimodelUpliftClassifier(_MultimodelUpliftModel, UpliftClassifierMixin):
     """Multimodel uplift classifier.
@@ -116,6 +123,13 @@ class MultimodelUpliftClassifier(_MultimodelUpliftModel, UpliftClassifierMixin):
     """
     def __init__(self, base_estimator=LogisticRegression()):
         super().__init__(base_estimator, "predict_proba")
+    def predict(self, X):
+        pred_diffs = self._predict_diffs(X)
+        if self.n_trt_ == 1:
+            y = pred_diffs[0]
+        else:
+            y = np.dstack(pred_diffs)
+        return y
 
 
 class MultimodelUpliftLinearRegressor(MultimodelUpliftRegressor, LinearModel):
