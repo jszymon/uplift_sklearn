@@ -42,7 +42,7 @@ def uplift_curve(y_true, y_score, trt, n_trt=None, pos_label=None, sample_weight
         sample_weight_c = sample_weight[trt==0]
         sample_weight_t = sample_weight[trt==t]
     if n_trt > 1:
-        raise ValueError("uplift curve only supported for single treatment.")
+        raise ValueError("uplift curve only supported for a single treatment.")
         
     if pos_label is not None:
         y_true = (y_true == pos_label)
