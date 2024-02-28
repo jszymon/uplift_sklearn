@@ -119,7 +119,23 @@ class MultimodelUpliftRegressor(_MultimodelUpliftModel, UpliftRegressorMixin):
             y = np.column_stack(pred_diffs)
         return y
 
-class MultimodelUpliftClassifier(_MultimodelUpliftModel, UpliftClassifierMixin):
+class _MultimodelUpliftClassifierBase(_MultimodelUpliftModel, UpliftClassifierMixin):
+    def __init__(self, base_estimator, ignore_control=False):
+        super().__init__(base_estimator, prediction_method="predict_proba",
+                         ignore_control=ignore_control)
+    def predict(self, X):
+        pred_diffs = self._predict_diffs(X)
+        if self.n_trt_ == 1:
+            y = pred_diffs[0]
+        else:
+            y = np.dstack(pred_diffs)
+        return y
+    """Abstract base for several multimodel and response uplift
+    classifiers.
+
+    Implements the predict method."""
+
+class MultimodelUpliftClassifier(_MultimodelUpliftClassifierBase):
     """Multimodel uplift classifier.
 
     Build separate models for control and all treatments, subtract
@@ -136,31 +152,8 @@ class MultimodelUpliftClassifier(_MultimodelUpliftModel, UpliftClassifierMixin):
         is given it will be cloned for every treatment.
 
     """
-    def __init__(self, base_estimator=LogisticRegression(), **kwargs):
-        super().__init__(base_estimator, "predict_proba", **kwargs)
-    def predict(self, X):
-        pred_diffs = self._predict_diffs(X)
-        if self.n_trt_ == 1:
-            y = pred_diffs[0]
-        else:
-            y = np.dstack(pred_diffs)
-        return y
-
-class TreatmentUpliftClassifier(MultimodelUpliftClassifier):
-    """Predict uplift based on treatment classifiers.
-
-    Ignore control."""
     def __init__(self, base_estimator=LogisticRegression()):
-        super().__init__(base_estimator, ignore_control=True)
-class ResponseUpliftClassifier(TreatmentUpliftClassifier):
-    """Predict uplift using a classifier built on full data.
-
-    Ignore causal nature of the data."""
-    def fit(self, X, y, trt, n_trt=None):
-        n = X.shape[0]
-        trt = np.ones(n, dtype=np.int32)
-        n_trt = 1
-        super().fit(X, y, trt, n_trt)
+        super().__init__(base_estimator)
 
 class MultimodelUpliftLinearRegressor(MultimodelUpliftRegressor, LinearModel):
     """Uplift regressor with coef_ and intercept_ fields."""

@@ -3,11 +3,13 @@
 from .multi_model import MultimodelUpliftRegressor
 from .multi_model import MultimodelUpliftLinearRegressor
 from .multi_model import MultimodelUpliftClassifier
-from .multi_model import TreatmentUpliftClassifier
-from .multi_model import ResponseUpliftClassifier
+from .response import TreatmentUpliftClassifier
+from .response import ResponseUpliftClassifier
+from .response import ControlUpliftClassifier
 
 __all__ = ["MultimodelUpliftRegressor",
            "MultimodelUpliftLinearRegressor",
            "MultimodelUpliftClassifier",
            "TreatmentUpliftClassifier",
-           "ResponseUpliftClassifier"]
+           "ResponseUpliftClassifier",
+           "ControlUpliftClassifier"]
