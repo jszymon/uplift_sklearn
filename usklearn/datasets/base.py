@@ -9,6 +9,7 @@ from urllib.request import urlretrieve
 from os.path import join, exists
 from os import remove, makedirs
 import csv
+import gzip
 import logging
 from inspect import isfunction
 
@@ -119,7 +120,11 @@ def _read_csv(archive_path, feature_attrs, treatment_attrs, target_attrs,
         return x, attr_name
 
     Xy = []
-    with open(archive_path) as csvfile:
+    if archive_path.endswith(".gz"):
+        f_open = gzip.open
+    else:
+        f_open = open
+    with f_open(archive_path, mode="rt") as csvfile:
         if header is None:
             header = next(csvfile).strip().split(',')
         csvreader = csv.reader(csvfile, **csv_reader_args)
