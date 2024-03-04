@@ -72,7 +72,8 @@ def _fetch_remote(remote, dirname=None):
 
 def _read_csv(archive_path, feature_attrs, treatment_attrs, target_attrs,
               total_attrs=None, categ_as_strings=False, header=None,
-              csv_reader_args={"delimiter":",", "quotechar":'"'}):
+              csv_reader_args={"delimiter":",", "quotechar":'"'},
+              all_num=False):
     """Read CSV data.
 
     feature_attrs, treatment_attrs, target_attrs contain descriptions
@@ -89,6 +90,9 @@ def _read_csv(archive_path, feature_attrs, treatment_attrs, target_attrs,
     
     If total_attrs is not None, it should contain the total number of
     attributes in each record.
+
+    if all_num is True, array is read as floats for speed.  This
+    should be set only if all columns are either floats or ints.
 
     """
     def parse_attr(Xy_columns, header, attr_description, categ_as_strings):
@@ -126,13 +130,19 @@ def _read_csv(archive_path, feature_attrs, treatment_attrs, target_attrs,
         f_open = open
     with f_open(archive_path, mode="rt") as csvfile:
         if header is None:
-            header = next(csvfile).strip().split(',')
-        csvreader = csv.reader(csvfile, **csv_reader_args)
-        for record in csvreader:
-            Xy.append(record)
+            delim = csv_reader_args.get("delimiter", ",")
+            header = next(csvfile).strip().split(delim)
+        if all_num:
+            Xy_columns = np.loadtxt(csvfile, unpack=True, **csv_reader_args)
             if total_attrs is not None:
-                assert len(record) == total_attrs, (record, total_attrs)
-    Xy_columns = list(zip(*Xy))
+                assert len(Xy_columns) == total_attrs, (record, total_attrs)
+        else:
+            csvreader = csv.reader(csvfile, **csv_reader_args)
+            for record in csvreader:
+                Xy.append(record)
+                if total_attrs is not None:
+                    assert len(record) == total_attrs, (record, total_attrs)
+            Xy_columns = list(zip(*Xy))
     remove(archive_path)
     
     # parse treatment
@@ -199,6 +209,7 @@ def _fetch_remote_csv(remote, dataset_name,
                       random_state=None, shuffle=False,
                       header=None, total_attrs=None,
                       csv_reader_args={"delimiter":",", "quotechar":'"'},
+                      all_num=False,
                       data_home=None, logger=None):
     if logger is None:
         logger = logging.getLogger(__name__ + "." + dataset_name)
@@ -223,7 +234,7 @@ def _fetch_remote_csv(remote, dataset_name,
                      total_attrs=total_attrs,
                      csv_reader_args=csv_reader_args,
                      categ_as_strings=categ_as_strings,
-                     header=header)
+                     header=header, all_num=all_num)
 
         joblib.dump(D, dataset_path, compress=9)
     elif not available and not download_if_missing:
