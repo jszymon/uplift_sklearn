@@ -58,7 +58,7 @@ n_iter = 100
 base_classifier = Pipeline([("scaler", StandardScaler()),
                             ("logistic", LogisticRegression(max_iter=1000, C=0.1, random_state=234))])
 #base_classifier = RandomForestClassifier(n_estimators=10)
-models = [#MultimodelUpliftRegressor(),
+models = [MultimodelUpliftRegressor(),
           MultimodelUpliftClassifier(base_estimator=base_classifier),
           TreatmentUpliftClassifier(base_estimator=base_classifier, reverse=False),
           TreatmentUpliftClassifier(base_estimator=base_classifier, reverse=True),
@@ -81,7 +81,9 @@ for train_index, test_index in tqdm(cv.split(X, y_stratify), total=n_iter):
         #test_index = train_index
         score = m.predict(X[test_index])
         if is_classifier(m):
-            score = score[:,0]
+            score = score[:,0] # pos_label is 0
+        else:
+            score = -score # for regressor: pos_label is 0
         x, u = uplift_curve(y[test_index], score, trt[test_index], n_trt, pos_label=0)
         plt.plot(x, u, color=colors[mi], alpha=0.05)
 
