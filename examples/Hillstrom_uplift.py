@@ -20,11 +20,19 @@ from usklearn.meta import MultimodelUpliftClassifier
 from usklearn.meta import TreatmentUpliftClassifier
 from usklearn.meta import ResponseUpliftClassifier
 from usklearn.meta import ControlUpliftClassifier
+from usklearn.meta import TargetTransformUpliftRegressor
+from usklearn.meta import TargetTransformUpliftClassifier
 
 from usklearn.metrics import uplift_curve
 from usklearn.model_selection import cross_validate, cross_val_score, uplift_check_cv
 
 import matplotlib.pyplot as plt
+
+try:
+    from tqdm import tqdm
+except:
+    def tqdm(x, total=np.inf):
+        return x
 
 
 def encode_features(D):
@@ -56,24 +64,26 @@ n_trt = 1
 n_iter = 100
 
 base_classifier = Pipeline([("scaler", StandardScaler()),
-                            ("logistic", LogisticRegression(max_iter=100))])
+                            ("logistic", LogisticRegression(max_iter=1000))])
 models = [MultimodelUpliftRegressor(),
           MultimodelUpliftClassifier(base_estimator=base_classifier),
           TreatmentUpliftClassifier(base_estimator=base_classifier),
-          ResponseUpliftClassifier(base_estimator=base_classifier),
+          ResponseUpliftClassifier(base_estimator=base_classifier, reverse=False),
           ControlUpliftClassifier(base_estimator=base_classifier, reverse=True),
           ControlUpliftClassifier(base_estimator=base_classifier, reverse=False),
+          TargetTransformUpliftRegressor(),
+          TargetTransformUpliftClassifier(),
           ]
-cv, y_stratify = uplift_check_cv(StratifiedShuffleSplit(test_size=10000,
+cv, y_stratify = uplift_check_cv(StratifiedShuffleSplit(test_size=0.3,
                                                         n_splits=n_iter,
                                                         random_state=123),
                                  y, trt, n_trt, classifier=True)
 
-colors = "rgbkcy"
+colors = list("rgbkcym") + ["orange"]
 avg_x = np.linspace(0,1,1000)
 avg_u = np.zeros((len(models), len(avg_x)))
 
-for train_index, test_index in cv.split(X, y_stratify):
+for train_index, test_index in tqdm(cv.split(X, y_stratify), total=n_iter):
     for mi, m in enumerate(models):
         m.fit(X[train_index], y[train_index], trt[train_index], n_trt)
         score = m.predict(X[test_index])

@@ -6,10 +6,15 @@ from .multi_model import MultimodelUpliftClassifier
 from .response import TreatmentUpliftClassifier
 from .response import ResponseUpliftClassifier
 from .response import ControlUpliftClassifier
+from .target_transform import TargetTransformUpliftRegressor
+from .target_transform import TargetTransformUpliftClassifier
 
 __all__ = ["MultimodelUpliftRegressor",
            "MultimodelUpliftLinearRegressor",
            "MultimodelUpliftClassifier",
            "TreatmentUpliftClassifier",
            "ResponseUpliftClassifier",
-           "ControlUpliftClassifier"]
+           "ControlUpliftClassifier",
+           "TargetTransformUpliftRegressor",
+           "TargetTransformUpliftClassifier",
+           ]

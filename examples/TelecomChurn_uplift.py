@@ -21,6 +21,8 @@ from usklearn.meta import MultimodelUpliftClassifier
 from usklearn.meta import TreatmentUpliftClassifier
 from usklearn.meta import ResponseUpliftClassifier
 from usklearn.meta import ControlUpliftClassifier
+from usklearn.meta import TargetTransformUpliftRegressor
+from usklearn.meta import TargetTransformUpliftClassifier
 
 from usklearn.metrics import uplift_curve
 from usklearn.model_selection import cross_validate, cross_val_score, uplift_check_cv
@@ -63,15 +65,17 @@ models = [MultimodelUpliftRegressor(),
           TreatmentUpliftClassifier(base_estimator=base_classifier, reverse=False),
           TreatmentUpliftClassifier(base_estimator=base_classifier, reverse=True),
           ResponseUpliftClassifier(base_estimator=base_classifier),
-          ControlUpliftClassifier(base_estimator=base_classifier, reverse=True),
-          ControlUpliftClassifier(base_estimator=base_classifier, reverse=False),
+          #ControlUpliftClassifier(base_estimator=base_classifier, reverse=True),
+          #ControlUpliftClassifier(base_estimator=base_classifier, reverse=False),
+          TargetTransformUpliftRegressor(),
+          TargetTransformUpliftClassifier(),
           ]
-cv, y_stratify = uplift_check_cv(StratifiedShuffleSplit(test_size=3000,
+cv, y_stratify = uplift_check_cv(StratifiedShuffleSplit(test_size=0.1,
                                                         n_splits=n_iter,
                                                         random_state=123),
                                  y, trt, n_trt, classifier=True)
 
-colors = "rgbkcy"
+colors = list("rgbkcym") + ["orange"]
 avg_x = np.linspace(0,1,1000)
 avg_u = np.zeros((len(models), len(avg_x)))
 

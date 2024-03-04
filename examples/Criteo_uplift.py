@@ -22,6 +22,7 @@ from usklearn.meta import MultimodelUpliftClassifier
 from usklearn.meta import TreatmentUpliftClassifier
 from usklearn.meta import ResponseUpliftClassifier
 from usklearn.meta import ControlUpliftClassifier
+from usklearn.meta import TargetTransformUpliftRegressor
 
 from usklearn.metrics import uplift_curve
 from usklearn.model_selection import cross_validate, cross_val_score, uplift_check_cv
@@ -40,20 +41,24 @@ y = D.target_visit
 trt = D.treatment
 n_trt = 1
 
+del D # free some memory
+
 n_iter = 10
 
 base_classifier = Pipeline([("scaler", StandardScaler()),
-                            ("logistic", LogisticRegression(max_iter=1000, C=1, random_state=234))])
+                            ("logistic", LogisticRegression(max_iter=1000, C=1, random_state=234,
+                                                            solver="newton-cholesky"))])
 #base_classifier = RandomForestClassifier(n_estimators=10)
 models = [MultimodelUpliftRegressor(base_estimator=LinearRegression(copy_X=False)),
-          #MultimodelUpliftClassifier(base_estimator=base_classifier),
+          MultimodelUpliftClassifier(base_estimator=base_classifier),
           #TreatmentUpliftClassifier(base_estimator=base_classifier, reverse=False),
           #TreatmentUpliftClassifier(base_estimator=base_classifier, reverse=True),
-          #ResponseUpliftClassifier(base_estimator=base_classifier),
+          ResponseUpliftClassifier(base_estimator=base_classifier),
           #ControlUpliftClassifier(base_estimator=base_classifier, reverse=True),
           #ControlUpliftClassifier(base_estimator=base_classifier, reverse=False),
+          TargetTransformUpliftRegressor(),
           ]
-cv, y_stratify = uplift_check_cv(StratifiedShuffleSplit(test_size=3000,
+cv, y_stratify = uplift_check_cv(StratifiedShuffleSplit(test_size=0.3,
                                                         n_splits=n_iter,
                                                         random_state=123),
                                  y, trt, n_trt, classifier=True)
@@ -70,9 +75,10 @@ for train_index, test_index in tqdm(cv.split(X, y_stratify), total=n_iter):
         if is_classifier(m):
             score = score[:,1]
         x, u = uplift_curve(y[test_index], score, trt[test_index], n_trt)
-        plt.plot(x, u, color=colors[mi], alpha=0.05)
+        u = np.interp(avg_x, x, u)
+        plt.plot(avg_x, u, color=colors[mi], alpha=0.05)
 
-        avg_u[mi] += np.interp(avg_x, x, u)
+        avg_u[mi] += u
 
 for mi, m in enumerate(models):
     plt.plot(avg_x, avg_u[mi]/n_iter, color=colors[mi], lw=3)

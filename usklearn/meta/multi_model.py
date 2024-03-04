@@ -40,8 +40,8 @@ class _MultimodelUpliftModel(_BaseComposition):
         X, y = check_X_y(X, y, accept_sparse="csr")
         trt, n_trt = check_trt(trt, n_trt)
         check_consistent_length(X, y, trt)
-
         self._set_fit_params(y, trt, n_trt)
+
         self.n_models_ = self.n_trt_ + 1
         self.models_ = self._check_base_estimator(self.n_models_)
         self.n_ = np.zeros(self.n_models_, dtype=int)
@@ -109,8 +109,9 @@ class MultimodelUpliftRegressor(_MultimodelUpliftModel, UpliftRegressorMixin):
         to be used per each model, the list version must be given.  If a
         single estimator is given it will be cloned for every treatment.
     """
-    def __init__(self, base_estimator=LinearRegression()):
-        super().__init__(base_estimator, "predict")
+    def __init__(self, base_estimator=LinearRegression(), ignore_control=False):
+        super().__init__(base_estimator, "predict",
+                         ignore_control=ignore_control)
     def predict(self, X):
         pred_diffs = self._predict_diffs(X)
         if self.n_trt_ == 1:

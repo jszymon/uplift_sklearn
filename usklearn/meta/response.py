@@ -16,7 +16,7 @@ class _ResponseModelBase(_MultimodelUpliftClassifierBase):
         if self.reverse:
             y = 1-y
         return y
-    
+
 class TreatmentUpliftClassifier(_ResponseModelBase):
     """Predict uplift based on treatment classifiers.
 
