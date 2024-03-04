@@ -30,7 +30,8 @@ import matplotlib.pyplot as plt
 try:
     from tqdm import tqdm
 except:
-    tqdm = lambda x: x
+    def tqdm(x, total=np.inf):
+        return x
 
 def encode_features(D):
     """Convert features to float matrix.
@@ -52,7 +53,7 @@ y = D.target
 trt = D.treatment
 n_trt = 1
 
-n_iter = 10
+n_iter = 100
 
 base_classifier = Pipeline([("scaler", StandardScaler()),
                             ("logistic", LogisticRegression(max_iter=1000, C=0.1, random_state=234))])
@@ -74,7 +75,7 @@ colors = "rgbkcy"
 avg_x = np.linspace(0,1,1000)
 avg_u = np.zeros((len(models), len(avg_x)))
 
-for train_index, test_index in tqdm(cv.split(X, y_stratify)):
+for train_index, test_index in tqdm(cv.split(X, y_stratify), total=n_iter):
     for mi, m in enumerate(models):
         m.fit(X[train_index], y[train_index], trt[train_index], n_trt)
         #test_index = train_index
