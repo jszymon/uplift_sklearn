@@ -76,7 +76,7 @@ class UpliftTransformerMixin(object):
         # method is possible for a given clustering algorithm
         if y is None:
             # fit method of arity 1 (unsupervised transformation)
-            fitted = self.fit(X, y, trt, n_trt, **fit_params)
+            fitted = self.fit(X, trt, n_trt, **fit_params)
             return fitted.transform(X, trt, n_trt)
         else:
             # fit method of arity 2 (supervised transformation)
