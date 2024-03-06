@@ -74,3 +74,7 @@ class TargetTransformUpliftClassifier(_MultimodelUpliftClassifierBase):
             yi[c_mask[mask]] = 1 - yi[c_mask[mask]]
             mi.fit(Xi, yi)
         return self
+    def predict(self, X):
+        y = super().predict(X)
+        y = 2*y-1
+        return y
