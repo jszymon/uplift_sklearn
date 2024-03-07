@@ -28,6 +28,11 @@ def uplift_curve(y_true, y_score, trt, n_trt=None, pos_label=None, sample_weight
 
     Unless specified explicitly, y_true is assumed to be 0-1, with 1
     the positive outcome.
+
+    This function implements the variant used by Rzepakowski and
+    Jaroszewicz, where treatment and control curves are computed
+    separately and subtracted.
+
     """
     y_true = check_array(y_true, ensure_2d=False)
     y_score = check_array(y_score, ensure_2d=False)
@@ -75,4 +80,44 @@ def uplift_curve(y_true, y_score, trt, n_trt=None, pos_label=None, sample_weight
     y_c = np.interp(x, idx_c/n_c, gains_c)
     y_t = np.interp(x, idx_t/n_t, gains_t)
     u = y_t - y_c
+    return x, u
+
+def uplift_curve_j(y_true, y_score, trt, n_trt=None, pos_label=None, sample_weight=None):
+    """Uplift curve.
+
+    Unless specified explicitly, y_true is assumed to be 0-1, with 1
+    the positive outcome.
+
+    This function implements the variant where scores are sorted
+    jointly, see Verbeke, Nyberg, Verhelst.
+
+    """
+    y_true = check_array(y_true, ensure_2d=False)
+    y_score = check_array(y_score, ensure_2d=False)
+    trt, n_trt = check_trt(trt, n_trt)
+    if sample_weight is None:
+        check_consistent_length(y_true, y_score, trt)
+        sample_weight = np.ones_like(y_true, dtype=float)
+    else:
+        sample_weight = check_array(sample_weight, ensure_2d=False)
+        check_consistent_length(y_true, y_score, trt, sample_weight)
+    if n_trt > 1:
+        raise ValueError("uplift curve only supported for a single treatment.")
+        
+    if pos_label is not None:
+        y_true = (y_true == pos_label)
+
+    # normalize weights
+    n_c = (trt==0).sum()
+    n_t = (trt==1).sum()
+    if n_c == 0:
+        raise RuntimeError("Cannot construct uplift curve: no cases in control")
+    if n_t == 0:
+        raise RuntimeError("Cannot construct uplift curve: no treated cases")
+    sample_weight[trt==0] /= -n_c
+    sample_weight[trt==1] /= n_t
+    
+    idx, u = _cumulative_gains_curve(y_true, y_score, sample_weight)
+    x = np.linspace(0, 1, len(idx))
+
     return x, u
