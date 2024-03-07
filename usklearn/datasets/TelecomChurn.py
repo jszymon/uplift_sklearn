@@ -9,6 +9,7 @@ def fetch_TelecomChurn(return_X_y=False, **args):
     D.feature_names.remove("t")
     D.treatment_values = ["0", "1"]
     D.n_trt = 1
+    D.target = D.target.values.astype(np.int32)
     if return_X_y:
-        return D.data, D.target.values.astype(np.int32), D.trt
+        return D.data, D.target, D.trt
     return D
