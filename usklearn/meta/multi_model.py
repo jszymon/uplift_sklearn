@@ -36,7 +36,7 @@ class _MultimodelUpliftModel(_BaseComposition):
         else:
             estimator_list = self.base_estimator
         return estimator_list
-    def fit(self, X, y, trt, n_trt=None):
+    def fit(self, X, y, trt, n_trt=None, sample_weight=None):
         X, y = check_X_y(X, y, accept_sparse="csr")
         trt, n_trt = check_trt(trt, n_trt)
         check_consistent_length(X, y, trt)
@@ -49,11 +49,19 @@ class _MultimodelUpliftModel(_BaseComposition):
             if self.ignore_control and i == 0:
                 continue
             mi = self.models_[i][1]
-            ind = (trt==i)
-            self.n_[i] = ind.sum()
-            Xi = X[ind]
-            yi = y[ind]
-            mi.fit(Xi, yi)
+            mask = (trt==i)
+            if sample_weight is None:
+                wi = None
+                self.n_[i] = mask.sum()
+            else:
+                wi = sample_weight[mask]
+                self.n_[i] = wi.sum()
+            Xi = X[mask]
+            yi = y[mask]
+            if wi is None:
+                mi.fit(Xi, yi)
+            else:
+                mi.fit(Xi, yi, sample_weight=wi)
         return self
     def _predict_diffs(self, X):
         """Predict differences between model predictions for each
