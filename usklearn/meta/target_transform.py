@@ -11,7 +11,7 @@ from .multi_model import MultimodelUpliftRegressor
 from .multi_model import _MultimodelUpliftClassifierBase
 
 class _TargetTransformUpliftModelBase:
-    def transformed_fit(self, X, y, trt, n_trt=None, sample_weight=None):
+    def fit(self, X, y, trt, n_trt=None, sample_weight=None):
         """Generic fitting method to be called """
         X, y = check_X_y(X, y, accept_sparse="csr")
         trt, n_trt = check_trt(trt, n_trt)
@@ -23,6 +23,7 @@ class _TargetTransformUpliftModelBase:
         self.n_ = np.empty(self.n_models_, dtype=int)
         c_mask = (trt==0)
         n_c = c_mask.sum()
+
         for i in range(self.n_models_):
             if self.ignore_control and i == 0:
                 continue
@@ -43,7 +44,7 @@ class _TargetTransformUpliftModelBase:
             if wi is None:
                 mi.fit(Xi, yi)
             else:
-                mi.fit(Xi, yi, wi)
+                mi.fit(Xi, yi, sample_weight=wi)
         return self
     def _transform(self, X, y, trt, n_trt, sample_weight, full_y):
         """Transform target for model building.
@@ -55,8 +56,8 @@ class TargetTransformUpliftRegressor(_TargetTransformUpliftModelBase, Multimodel
     def __init__(self, base_estimator=LinearRegression()):
         super().__init__(base_estimator=base_estimator,
                          ignore_control=True)
-    def fit(self, X, y, trt, n_trt=None, sample_weight=None):
-        return self.transformed_fit(X, y, trt, n_trt=None, sample_weight=None)
+    #def fit(self, X, y, trt, n_trt=None, sample_weight=None):
+    #    return self.transformed_fit(X, y, trt, n_trt=n_trt, sample_weight=sample_weight)
     def _transform(self, X, y, trt, n_trt, sample_weight, full_y):
         """Transform target for model building.
 
@@ -79,8 +80,8 @@ class TargetTransformUpliftClassifier(_TargetTransformUpliftModelBase, _Multimod
     def __init__(self, base_estimator=LogisticRegression()):
         super().__init__(base_estimator=base_estimator,
                          ignore_control=True)
-    def fit(self, X, y, trt, n_trt=None, sample_weight=None):
-        return self.transformed_fit(X, y, trt, n_trt=None, sample_weight=None)
+    #def fit(self, X, y, trt, n_trt=None, sample_weight=None):
+    #    return self.transformed_fit(X, y, trt, n_trt=n_trt, sample_weight=sample_weight)
     def _transform(self, X, y, trt, n_trt, sample_weight, full_y):
         """Transform target for model building.
 
