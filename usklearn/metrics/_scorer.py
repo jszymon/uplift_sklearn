@@ -3,6 +3,7 @@
 import copy
 
 from .regression import e_sate, e_satt
+from .curves import auuc, auuc_j
 
 class _BaseUpliftScorer:
     def __init__(self, score_func, sign, kwargs):
@@ -267,6 +268,8 @@ def make_uplift_scorer(score_func, greater_is_better=True, needs_decision=False,
 _UPLIFT_SCORERS = dict(
     e_sate=make_uplift_scorer(e_sate, greater_is_better=False),
     e_satt=make_uplift_scorer(e_satt, greater_is_better=False),
+    auuc=make_uplift_scorer(auuc, greater_is_better=True),
+    auuc_j=make_uplift_scorer(auuc_j, greater_is_better=True),
 )
 
 def get_uplift_scorer_names():
