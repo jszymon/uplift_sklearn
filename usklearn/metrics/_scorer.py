@@ -4,6 +4,7 @@ import copy
 
 from .regression import e_sate, e_satt
 from .curves import auuc, auuc_j
+from .bins import QMSE, EUCE, MUCE
 
 class _BaseUpliftScorer:
     def __init__(self, score_func, sign, kwargs):
@@ -270,6 +271,9 @@ _UPLIFT_SCORERS = dict(
     e_satt=make_uplift_scorer(e_satt, greater_is_better=False),
     auuc=make_uplift_scorer(auuc, greater_is_better=True),
     auuc_j=make_uplift_scorer(auuc_j, greater_is_better=True),
+    QMSE=make_uplift_scorer(QMSE, greater_is_better=False),
+    EUCE=make_uplift_scorer(EUCE, greater_is_better=False),
+    MUCE=make_uplift_scorer(MUCE, greater_is_better=False),
 )
 
 def get_uplift_scorer_names():
