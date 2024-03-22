@@ -104,11 +104,10 @@ def _per_q_euce(y_true, y_pred, idx_t, idx_c):
         mi_t = y_true[idx_t].mean()
     else:
         mi_t = np.nan
-    if len(idx_t) > 0:
-        mse_j = np.mean(np.abs(y_pred[idx_t] - (mi_t-mi_c)))
-    else:
-        mse_j = np.nan
-    return mse_j
+    idx = np.concatenate([idx_c, idx_t])
+    mi_p = np.mean(y_pred[idx])
+    d_j = np.abs(mi_p - (mi_t-mi_c))
+    return d_j
 
 def EUCE(y_true, y_pred, trt, n_trt=None, sample_weight=None,
          n_bins=100, allow_nans=False, joint_quantiles=True):
