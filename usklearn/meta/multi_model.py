@@ -12,6 +12,65 @@ from ..base import UpliftClassifierMixin
 from ..utils import check_trt
 
 
+class _MetaUpliftModelBase(_BaseComposition):
+    """Base class for uplift meta estimators.
+
+    Checks input consistency, builds classifiers on data subsets.
+
+    """
+    def __init__(self, base_estimator):
+        self.base_estimator = base_estimator
+    def _get_model_names_list(self, X=None, y=None, trt=None):
+        """Return a list of names of constituent
+        classification/regression models.
+
+        This method should be overridden such that the number of
+        models can be determined by _check_base_estimator.  None given
+        as model name means that None will be put in model list
+        instead of a real model (useful to keep the list of given size
+        even if some models are not used).
+        """
+        return []
+    def _check_base_estimator(self, n_models):
+        if hasattr(self.base_estimator, "fit"):
+            estimator_list = []
+            for i in range(n_models):
+                name = "model_c" if i == 0 else "model_t" + str(i-1)
+                if self.ignore_control and i == 0:
+                    estimator_list.append((name, None))
+                else:
+                    estimator_list.append((name, clone(self.base_estimator)))
+        else:
+            estimator_list = self.base_estimator
+        return estimator_list
+    def fit(self, X, y, trt, n_trt=None, sample_weight=None):
+        X, y = check_X_y(X, y, accept_sparse="csr")
+        trt, n_trt = check_trt(trt, n_trt)
+        check_consistent_length(X, y, trt)
+        self._set_fit_params(y, trt, n_trt)
+
+        self.n_models_ = self.n_trt_ + 1
+        self.models_ = self._check_base_estimator(self.n_models_)
+        self.n_ = np.zeros(self.n_models_, dtype=int)
+        for i in range(self.n_models_):
+            if self.ignore_control and i == 0:
+                continue
+            mi = self.models_[i][1]
+            mask = (trt==i)
+            if sample_weight is None:
+                wi = None
+                self.n_[i] = mask.sum()
+            else:
+                wi = sample_weight[mask]
+                self.n_[i] = wi.sum()
+            Xi = X[mask]
+            yi = y[mask]
+            if wi is None:
+                mi.fit(Xi, yi)
+            else:
+                mi.fit(Xi, yi, sample_weight=wi)
+        return self
+    
 class _MultimodelUpliftModel(_BaseComposition):
     """Base class fot multimodels (T-learners).
 
