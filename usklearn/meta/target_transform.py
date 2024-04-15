@@ -2,62 +2,50 @@
 
 import numpy as np
 
-from sklearn.utils import check_X_y, check_consistent_length
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import LogisticRegression
 
-from ..utils import check_trt
-from .multi_model import MultimodelUpliftRegressor
-from .multi_model import _MultimodelUpliftClassifierBase
+from .base import UpliftMetaModelBase
+from ..base import UpliftRegressorMixin
+from ..base import UpliftClassifierMixin
 
-class _TargetTransformUpliftModelBase:
-    def fit(self, X, y, trt, n_trt=None, sample_weight=None):
-        """Generic fitting method to be called """
-        X, y = check_X_y(X, y, accept_sparse="csr")
-        trt, n_trt = check_trt(trt, n_trt)
-        check_consistent_length(X, y, trt)
-        self._set_fit_params(y, trt, n_trt)
+#from .multi_model import MultimodelUpliftRegressor
+#from .multi_model import _MultimodelUpliftClassifierBase
 
-        self.n_models_ = self.n_trt_ + 1
-        self.models_ = self._check_base_estimator(self.n_models_)
-        self.n_ = np.empty(self.n_models_, dtype=int)
+class _TargetTransformUpliftModelBase(UpliftMetaModelBase):
+    def _get_model_names_list(self, X=None, y=None, trt=None):
+        m_names = []
+        for i in range(self.n_trt_):
+            name = "model_ct"
+            if self.n_trt_ > 1:
+                name += str(i)
+            m_names.append(name)
+        return m_names
+    def _iter_training_subsets(self, X, y, trt, n_trt, sample_weight):
         c_mask = (trt==0)
-        n_c = c_mask.sum()
-
         for i in range(self.n_models_):
-            if self.ignore_control and i == 0:
-                continue
-            mi = self.models_[i][1]
-            t_mask = (trt==i)
+            t_mask = (trt==(i+1))
             mask = t_mask|c_mask
             if sample_weight is None:
-                wi = None
-                n = mask.sum()
+                w_i = None
             else:
-                wi = sample_weight[mask]
-                n = wi.sum()
-            self.n_[i] = n
-            Xi = X[mask]
-            yi = np.asfarray(y[mask]) # allow classification problems
+                w_i = sample_weight[mask]
+            X_i = X[mask]
+            y_i = np.asfarray(y[mask]) # allow classification problems
             trt_i = trt[mask]
-            Xi, yi, wi = self._transform(Xi, yi, trt_i, n_trt, wi, y)
-            if wi is None:
-                mi.fit(Xi, yi)
-            else:
-                mi.fit(Xi, yi, sample_weight=wi)
-        return self
+            X_i, y_i, w_i = self._transform(X_i, y_i, trt_i, n_trt, w_i, y)
+            yield X_i, y_i, w_i
+
     def _transform(self, X, y, trt, n_trt, sample_weight, full_y):
         """Transform target for model building.
 
         full_y is passed to allow tests to avoid overwriting."""
         raise NotImplementedError()
 
-class TargetTransformUpliftRegressor(_TargetTransformUpliftModelBase, MultimodelUpliftRegressor):
+class TargetTransformUpliftRegressor(_TargetTransformUpliftModelBase,
+                                     UpliftRegressorMixin):
     def __init__(self, base_estimator=LinearRegression()):
-        super().__init__(base_estimator=base_estimator,
-                         ignore_control=True)
-    #def fit(self, X, y, trt, n_trt=None, sample_weight=None):
-    #    return self.transformed_fit(X, y, trt, n_trt=n_trt, sample_weight=sample_weight)
+        super().__init__(base_estimator=base_estimator)
     def _transform(self, X, y, trt, n_trt, sample_weight, full_y):
         """Transform target for model building.
 
@@ -74,14 +62,19 @@ class TargetTransformUpliftRegressor(_TargetTransformUpliftModelBase, Multimodel
         y[mask_c] *= (-n/nc)
         y[mask_t] *= (n/nt)
         return X, y, sample_weight
+    def predict(self, X):
+        preds = [m_i.predict(X) for _, m_i in self.models_]
+        if self.n_trt_ == 1:
+            y = preds[0]
+        else:
+            y = np.column_stack(preds)
+        return y
 
 
-class TargetTransformUpliftClassifier(_TargetTransformUpliftModelBase, _MultimodelUpliftClassifierBase):
+class TargetTransformUpliftClassifier(_TargetTransformUpliftModelBase,
+                                      UpliftClassifierMixin):
     def __init__(self, base_estimator=LogisticRegression()):
-        super().__init__(base_estimator=base_estimator,
-                         ignore_control=True)
-    #def fit(self, X, y, trt, n_trt=None, sample_weight=None):
-    #    return self.transformed_fit(X, y, trt, n_trt=n_trt, sample_weight=sample_weight)
+        super().__init__(base_estimator=base_estimator)
     def _transform(self, X, y, trt, n_trt, sample_weight, full_y):
         """Transform target for model building.
 
@@ -91,6 +84,9 @@ class TargetTransformUpliftClassifier(_TargetTransformUpliftModelBase, _Multimod
         y[trt == 0] = 1-y[trt == 0]
         return X, y, sample_weight
     def predict(self, X):
-        y = super().predict(X)
-        y = 2*y-1
+        preds = [2 * m_i.predict_proba(X) - 1 for _, m_i in self.models_]
+        if self.n_trt_ == 1:
+            y = preds[0]
+        else:
+            y = np.dstack(preds)
         return y
