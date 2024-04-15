@@ -1,77 +1,17 @@
 """Uplift models based on multiple classification/regression models."""
 
 import numpy as np
-from sklearn.base import BaseEstimator, clone
-from sklearn.utils import check_X_y, check_consistent_length
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import LogisticRegression
 from sklearn.linear_model._base import LinearModel
-from sklearn.utils.metaestimators import _BaseComposition
+
+from .base import UpliftMetaModelBase
 from ..base import UpliftRegressorMixin
 from ..base import UpliftClassifierMixin
-from ..utils import check_trt
 
 
-class _MetaUpliftModelBase(_BaseComposition):
-    """Base class for uplift meta estimators.
 
-    Checks input consistency, builds classifiers on data subsets.
-
-    """
-    def __init__(self, base_estimator):
-        self.base_estimator = base_estimator
-    def _get_model_names_list(self, X=None, y=None, trt=None):
-        """Return a list of names of constituent
-        classification/regression models.
-
-        This method should be overridden such that the number of
-        models can be determined by _check_base_estimator.  None given
-        as model name means that None will be put in model list
-        instead of a real model (useful to keep the list of given size
-        even if some models are not used).
-        """
-        return []
-    def _check_base_estimator(self, n_models):
-        if hasattr(self.base_estimator, "fit"):
-            estimator_list = []
-            for i in range(n_models):
-                name = "model_c" if i == 0 else "model_t" + str(i-1)
-                if self.ignore_control and i == 0:
-                    estimator_list.append((name, None))
-                else:
-                    estimator_list.append((name, clone(self.base_estimator)))
-        else:
-            estimator_list = self.base_estimator
-        return estimator_list
-    def fit(self, X, y, trt, n_trt=None, sample_weight=None):
-        X, y = check_X_y(X, y, accept_sparse="csr")
-        trt, n_trt = check_trt(trt, n_trt)
-        check_consistent_length(X, y, trt)
-        self._set_fit_params(y, trt, n_trt)
-
-        self.n_models_ = self.n_trt_ + 1
-        self.models_ = self._check_base_estimator(self.n_models_)
-        self.n_ = np.zeros(self.n_models_, dtype=int)
-        for i in range(self.n_models_):
-            if self.ignore_control and i == 0:
-                continue
-            mi = self.models_[i][1]
-            mask = (trt==i)
-            if sample_weight is None:
-                wi = None
-                self.n_[i] = mask.sum()
-            else:
-                wi = sample_weight[mask]
-                self.n_[i] = wi.sum()
-            Xi = X[mask]
-            yi = y[mask]
-            if wi is None:
-                mi.fit(Xi, yi)
-            else:
-                mi.fit(Xi, yi, sample_weight=wi)
-        return self
-    
-class _MultimodelUpliftModel(_BaseComposition):
+class _MultimodelUpliftModel(UpliftMetaModelBase):
     """Base class fot multimodels (T-learners).
 
     if ignore_control is set to True, response model on treatment is
@@ -80,48 +20,40 @@ class _MultimodelUpliftModel(_BaseComposition):
     """
     def __init__(self, base_estimator, prediction_method,
                  ignore_control=False):
-        self.base_estimator = base_estimator
+        super().__init__(base_estimator)
         self.prediction_method = prediction_method
         self.ignore_control = ignore_control
-    def _check_base_estimator(self, n_models):
-        if hasattr(self.base_estimator, "fit"):
-            estimator_list = []
-            for i in range(n_models):
-                name = "model_c" if i == 0 else "model_t" + str(i-1)
-                if self.ignore_control and i == 0:
-                    estimator_list.append((name, None))
-                else:
-                    estimator_list.append((name, clone(self.base_estimator)))
-        else:
-            estimator_list = self.base_estimator
-        return estimator_list
-    def fit(self, X, y, trt, n_trt=None, sample_weight=None):
-        X, y = check_X_y(X, y, accept_sparse="csr")
-        trt, n_trt = check_trt(trt, n_trt)
-        check_consistent_length(X, y, trt)
-        self._set_fit_params(y, trt, n_trt)
+    def _get_model_names_list(self, X=None, y=None, trt=None):
+        control_m_name = "_model_c" if self.ignore_control else "model_c"
+        m_names = []
+        for i in range(self.n_trt_ + 1):
+            if i == 0:
+                name = control_m_name
+            else:
+                name = "model_t"
+                if self.n_trt_ > 1:
+                    name += str(i-1)
+            m_names.append(name)
+        return m_names
+    def _iter_training_subsets(self, X, y, trt, n_trt, sample_weight):
+        """Return training sets for all models in the meta model.
 
-        self.n_models_ = self.n_trt_ + 1
-        self.models_ = self._check_base_estimator(self.n_models_)
-        self.n_ = np.zeros(self.n_models_, dtype=int)
+        Each iteration returns a triple of predictor matrix, target
+        vector, and sample weights (possibly None).
+
+        """
         for i in range(self.n_models_):
             if self.ignore_control and i == 0:
-                continue
-            mi = self.models_[i][1]
-            mask = (trt==i)
-            if sample_weight is None:
-                wi = None
-                self.n_[i] = mask.sum()
+                yield None, None, None
             else:
-                wi = sample_weight[mask]
-                self.n_[i] = wi.sum()
-            Xi = X[mask]
-            yi = y[mask]
-            if wi is None:
-                mi.fit(Xi, yi)
-            else:
-                mi.fit(Xi, yi, sample_weight=wi)
-        return self
+                mask = (trt==i)
+                if sample_weight is None:
+                    wi = None
+                else:
+                    wi = sample_weight[mask]
+                Xi = X[mask]
+                yi = y[mask]
+                yield Xi, yi, wi
     def _predict_diffs(self, X):
         """Predict differences between model predictions for each
         treatment."""
@@ -133,33 +65,6 @@ class _MultimodelUpliftModel(_BaseComposition):
                       - y_control for i in range(self.n_trt_)]
         return pred_diffs
 
-    def get_params(self, deep=True):
-        """Get parameters for this estimator.
-        Parameters
-        ----------
-        deep : boolean, optional
-            If True, will return the parameters for this estimator and
-            contained subobjects that are estimators.
-        Returns
-        -------
-        params : mapping of string to any
-            Parameter names mapped to their values.
-        """
-        if hasattr(self.base_estimator, "fit"):
-            return super().get_params(deep=deep)
-        return self._get_params('base_estimator', deep=deep)
-    def set_params(self, **kwargs):
-        """Set the parameters of this estimator.
-        Valid parameter keys can be listed with ``get_params()``.
-        Returns
-        -------
-        self
-        """
-        if hasattr(self.base_estimator, "fit"):
-            return super().set_params(**kwargs)
-        else:
-            self._set_params('base_estimator', **kwargs)
-        return self
 
 class MultimodelUpliftRegressor(_MultimodelUpliftModel, UpliftRegressorMixin):
     """Multimodel uplift regressor.

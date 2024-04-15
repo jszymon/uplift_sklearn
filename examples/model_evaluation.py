@@ -8,7 +8,8 @@ from sklearn.linear_model import Ridge
 
 from usklearn.datasets import fetch_Lalonde, fetch_Hillstrom
 from usklearn.meta import MultimodelUpliftRegressor
-from usklearn.model_selection import (cross_val_predict,
+from usklearn.model_selection import (cross_val_score,
+                                      cross_val_predict,
                                       permutation_test_score,
                                       learning_curve)
 
@@ -36,6 +37,7 @@ if True:
     D = fetch_Hillstrom(as_frame=True)
     X = encode_features(D)
     y = np.log1p(D.target_spend)
+    #y = D.target_visit
     trt = D.treatment
     trt[trt==2] = 1
 
@@ -45,7 +47,7 @@ print("Crossvalidated predictions:")
 print(cross_val_predict(r, X, y, trt, n_trt=1, cv=10))
 
 print("\n\nPermutation based model score")
-score, permutation_scores, pv = permutation_test_score(r, X, y, trt, n_trt=1, cv=10, n_permutations=100, n_jobs=-1)
+score, permutation_scores, pv = permutation_test_score(r, X, y, trt, n_trt=1, cv=10, n_permutations=100, n_jobs=-1)#, scoring="auuc_j")
 r.fit(X, y, trt, n_trt=1)
 print("score:", r.score(X, y, trt, n_trt=1))
 plt.hist(permutation_scores, density=True, label=f"p-value={pv}")
@@ -74,3 +76,7 @@ plt.plot(train_sizes, test_scores_mean, 'go-',
                  label="Test score")
 plt.legend()
 plt.show()
+
+#auucs = cross_val_score(r, X, y, trt, n_trt=1, scoring="auuc")
+#auucs_j = cross_val_score(r, X, y, trt, n_trt=1, scoring="auuc_j")
+#print("crossval AUUC:", auucs)

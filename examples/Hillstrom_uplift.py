@@ -23,7 +23,7 @@ from usklearn.meta import ControlUpliftClassifier
 from usklearn.meta import TargetTransformUpliftRegressor
 from usklearn.meta import TargetTransformUpliftClassifier
 
-from usklearn.metrics import uplift_curve
+from usklearn.metrics import uplift_curve, uplift_curve_j
 from usklearn.model_selection import cross_validate, cross_val_score, uplift_check_cv
 
 import matplotlib.pyplot as plt
@@ -65,12 +65,12 @@ n_iter = 100
 
 base_classifier = Pipeline([("scaler", StandardScaler()),
                             ("logistic", LogisticRegression(max_iter=1000))])
-models = [MultimodelUpliftRegressor(),
-          MultimodelUpliftClassifier(base_estimator=base_classifier),
-          TreatmentUpliftClassifier(base_estimator=base_classifier),
-          ResponseUpliftClassifier(base_estimator=base_classifier, reverse=False),
-          ControlUpliftClassifier(base_estimator=base_classifier, reverse=True),
-          ControlUpliftClassifier(base_estimator=base_classifier, reverse=False),
+models = [#MultimodelUpliftRegressor(),
+          #MultimodelUpliftClassifier(base_estimator=base_classifier),
+          #TreatmentUpliftClassifier(base_estimator=base_classifier),
+          #ResponseUpliftClassifier(base_estimator=base_classifier, reverse=False),
+          #ControlUpliftClassifier(base_estimator=base_classifier, reverse=True),
+          #ControlUpliftClassifier(base_estimator=base_classifier, reverse=False),
           TargetTransformUpliftRegressor(),
           TargetTransformUpliftClassifier(),
           ]
@@ -89,7 +89,7 @@ for train_index, test_index in tqdm(cv.split(X, y_stratify), total=n_iter):
         score = m.predict(X[test_index])
         if is_classifier(m):
             score = score[:,1]
-        x, u = uplift_curve(y[test_index], score, trt[test_index], n_trt)
+        x, u = uplift_curve_j(y[test_index], score, trt[test_index], n_trt)
         plt.plot(x, u, color=colors[mi], alpha=0.05)
 
         avg_u[mi] += np.interp(avg_x, x, u)

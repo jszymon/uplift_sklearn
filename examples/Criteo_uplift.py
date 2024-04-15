@@ -33,7 +33,7 @@ except:
         return x
 
 D = fetch_Criteo()
-X = D.data.astype(np.float32)
+X = D.data#.astype(np.float32)
 y = D.target_visit
 trt = D.treatment
 n_trt = 1
@@ -47,16 +47,16 @@ base_classifier = Pipeline([("scaler", StandardScaler()),
                                                             solver="newton-cholesky"))])
 #base_classifier = RandomForestClassifier(n_estimators=10, max_depth=3)
 models = [#MultimodelUpliftRegressor(base_estimator=LinearRegression(copy_X=False)),
-          MultimodelUpliftClassifier(base_estimator=base_classifier),
+          #MultimodelUpliftClassifier(base_estimator=base_classifier),
           #TreatmentUpliftClassifier(base_estimator=base_classifier, reverse=False),
           #TreatmentUpliftClassifier(base_estimator=base_classifier, reverse=True),
-          ResponseUpliftClassifier(base_estimator=base_classifier),
+          #ResponseUpliftClassifier(base_estimator=base_classifier),
           #ControlUpliftClassifier(base_estimator=base_classifier, reverse=True),
           #ControlUpliftClassifier(base_estimator=base_classifier, reverse=False),
-          #TargetTransformUpliftRegressor(),
+          TargetTransformUpliftRegressor(),
           TargetTransformUpliftClassifier(base_estimator=base_classifier),
           ]
-cv, y_stratify = uplift_check_cv(StratifiedShuffleSplit(train_size=0.1, test_size=0.3,
+cv, y_stratify = uplift_check_cv(StratifiedShuffleSplit(test_size=0.3,
                                                         n_splits=n_iter,
                                                         random_state=123),
                                  y, trt, n_trt, classifier=True)
