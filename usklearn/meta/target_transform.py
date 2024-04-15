@@ -9,8 +9,6 @@ from .base import UpliftMetaModelBase
 from ..base import UpliftRegressorMixin
 from ..base import UpliftClassifierMixin
 
-#from .multi_model import MultimodelUpliftRegressor
-#from .multi_model import _MultimodelUpliftClassifierBase
 
 class _TargetTransformUpliftModelBase(UpliftMetaModelBase):
     def _get_model_names_list(self, X=None, y=None, trt=None):
