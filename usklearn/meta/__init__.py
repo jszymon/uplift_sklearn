@@ -8,6 +8,8 @@ from .response import ResponseUpliftClassifier
 from .response import ControlUpliftClassifier
 from .target_transform import TargetTransformUpliftRegressor
 from .target_transform import TargetTransformUpliftClassifier
+from .s_learner import SLearnerUpliftRegressor
+from .s_learner import SLearnerUpliftClassifier
 
 __all__ = ["MultimodelUpliftRegressor",
            "MultimodelUpliftLinearRegressor",
@@ -17,4 +19,6 @@ __all__ = ["MultimodelUpliftRegressor",
            "ControlUpliftClassifier",
            "TargetTransformUpliftRegressor",
            "TargetTransformUpliftClassifier",
+           "SLearnerUpliftRegressor",
+           "SLearnerUpliftClassifier",
            ]
