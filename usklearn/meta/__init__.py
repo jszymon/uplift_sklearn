@@ -10,6 +10,7 @@ from .target_transform import TargetTransformUpliftRegressor
 from .target_transform import TargetTransformUpliftClassifier
 from .s_learner import SLearnerUpliftRegressor
 from .s_learner import SLearnerUpliftClassifier
+from .nested import NestedMeanUpliftRegressor
 
 __all__ = ["MultimodelUpliftRegressor",
            "MultimodelUpliftLinearRegressor",
@@ -21,4 +22,5 @@ __all__ = ["MultimodelUpliftRegressor",
            "TargetTransformUpliftClassifier",
            "SLearnerUpliftRegressor",
            "SLearnerUpliftClassifier",
+           "NestedMeanUpliftRegressor",
            ]
