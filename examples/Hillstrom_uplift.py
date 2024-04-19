@@ -22,6 +22,10 @@ from usklearn.meta import ResponseUpliftClassifier
 from usklearn.meta import ControlUpliftClassifier
 from usklearn.meta import TargetTransformUpliftRegressor
 from usklearn.meta import TargetTransformUpliftClassifier
+from usklearn.meta import SLearnerUpliftRegressor
+from usklearn.meta import SLearnerUpliftClassifier
+from usklearn.meta import NestedMeanUpliftRegressor
+from usklearn.meta import DDRUpliftClassifier
 
 from usklearn.metrics import uplift_curve, uplift_curve_j
 from usklearn.model_selection import cross_validate, cross_val_score, uplift_check_cv
@@ -72,7 +76,12 @@ models = [#MultimodelUpliftRegressor(),
           #ControlUpliftClassifier(base_estimator=base_classifier, reverse=True),
           #ControlUpliftClassifier(base_estimator=base_classifier, reverse=False),
           TargetTransformUpliftRegressor(),
-          TargetTransformUpliftClassifier(),
+          TargetTransformUpliftClassifier(base_estimator=base_classifier),
+          SLearnerUpliftRegressor(),
+          SLearnerUpliftClassifier(base_estimator=base_classifier),
+          NestedMeanUpliftRegressor(),
+          DDRUpliftClassifier(base_estimator=base_classifier),
+          DDRUpliftClassifier(base_estimator=base_classifier, direction="T->C"),
           ]
 cv, y_stratify = uplift_check_cv(StratifiedShuffleSplit(test_size=0.3,
                                                         n_splits=n_iter,
