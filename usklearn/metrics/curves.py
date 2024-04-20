@@ -124,22 +124,12 @@ def uplift_curve_j(y_true, y_score, trt, n_trt=None, pos_label=None, sample_weig
     return x, u
 
 
-def _auuc(uc_func, y_true, y_score, trt, n_trt=None, pos_label=None, sample_weight=None,
-         subtract_diag=True):
-    x, u = uc_func(y_true, y_score, trt, n_trt=n_trt, pos_label=pos_label,
-                   sample_weight=sample_weight)
-    auuc = np.trapz(u, x)
-    if subtract_diag:
-        a = x[-1] - x[0]
-        h = u[-1]
-        auuc -= a*h/2
-    return auuc
-def auuc(y_true, y_score, trt, n_trt=None, pos_label=None, sample_weight=None,
+def area_under_uplift_curve(y_true, y_score, trt, n_trt=None, pos_label=None, sample_weight=None,
          subtract_diag=True):
     x, u = uplift_curve(y_true, y_score, trt, n_trt=n_trt, pos_label=pos_label,
                         sample_weight=sample_weight)
     return area_under_curve(x, u, subtract_diag=subtract_diag)
-def auuc_j(y_true, y_score, trt, n_trt=None, pos_label=None, sample_weight=None,
+def area_under_uplift_curve_j(y_true, y_score, trt, n_trt=None, pos_label=None, sample_weight=None,
            subtract_diag=True):
     x, u = uplift_curve_j(y_true, y_score, trt, n_trt=n_trt, pos_label=pos_label,
                           sample_weight=sample_weight)
