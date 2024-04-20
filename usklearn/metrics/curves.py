@@ -4,7 +4,8 @@ import numpy as np
 
 from sklearn.utils.validation import check_array, check_consistent_length
 
-from ..utils.validation import check_trt
+from ..utils import check_trt
+from ..utils import area_under_curve
 
 def _cumulative_gains_curve(y_true, y_score, sample_weight):
     desc_score_indices = np.argsort(y_score, kind="mergesort")[::-1]
@@ -135,9 +136,11 @@ def _auuc(uc_func, y_true, y_score, trt, n_trt=None, pos_label=None, sample_weig
     return auuc
 def auuc(y_true, y_score, trt, n_trt=None, pos_label=None, sample_weight=None,
          subtract_diag=True):
-    return _auuc(uplift_curve, y_true, y_score, trt, n_trt=n_trt, pos_label=pos_label,
-                 sample_weight=sample_weight, subtract_diag=subtract_diag)
+    x, u = uplift_curve(y_true, y_score, trt, n_trt=n_trt, pos_label=pos_label,
+                        sample_weight=sample_weight)
+    return area_under_curve(x, u, subtract_diag=subtract_diag)
 def auuc_j(y_true, y_score, trt, n_trt=None, pos_label=None, sample_weight=None,
            subtract_diag=True):
-    return _auuc(uplift_curve_j, y_true, y_score, trt, n_trt=n_trt, pos_label=pos_label,
-                 sample_weight=sample_weight, subtract_diag=subtract_diag)
+    x, u = uplift_curve_j(y_true, y_score, trt, n_trt=n_trt, pos_label=pos_label,
+                          sample_weight=sample_weight)
+    return area_under_curve(x, u, subtract_diag=subtract_diag)
