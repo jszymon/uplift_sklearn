@@ -99,7 +99,7 @@ for train_index, test_index in tqdm(cv.split(X, y_stratify), total=n_iter):
         if is_classifier(m):
             score = score[:,1]
         x, u = uplift_curve_j(y[test_index], score, trt[test_index], n_trt)
-        plt.plot(x, u, color=colors[mi], alpha=0.05)
+        plt.plot(x, u, color=colors[mi], alpha=0.5/n_iter)
 
         avg_u[mi] += np.interp(avg_x, x, u)
 
