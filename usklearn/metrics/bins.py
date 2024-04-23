@@ -81,11 +81,11 @@ def QMSE(y_true, y_pred, trt, n_trt=None, sample_weight=None,
         if len(idx_c) > 0:
             mi_c = y_true[idx_c].mean()
         else:
-            mi_c = np.nan
+            return np.nan
         if len(idx_t) > 0:
             mi_t = y_true[idx_t].mean()
         else:
-            mi_t = np.nan
+            return np.nan
         if len(idx_t) > 0:
             mse_j = np.mean((y_pred[idx_t] - (mi_t-mi_c))**2)
         else:
@@ -99,11 +99,11 @@ def _per_q_euce(y_true, y_pred, idx_t, idx_c):
     if len(idx_c) > 0:
         mi_c = y_true[idx_c].mean()
     else:
-        mi_c = np.nan
+        return np.nan
     if len(idx_t) > 0:
         mi_t = y_true[idx_t].mean()
     else:
-        mi_t = np.nan
+        return np.nan
     idx = np.concatenate([idx_c, idx_t])
     mi_p = np.mean(y_pred[idx])
     d_j = np.abs(mi_p - (mi_t-mi_c))
