@@ -51,8 +51,8 @@ class BaseSearchCV(BaseEstimator):
         if "wrapped_search_" in self.__dict__:
             return getattr(self.wrapped_search_, arg)
         raise AttributeError(arg)
-    def fit(self, X, y, trt, n_trt=None, *, groups=None, **fit_params):
-        X, y, trt, groups = indexable(X, y, trt, groups)
+    def fit(self, X, y, trt, n_trt=None, **fit_params):
+        X, y, trt = indexable(X, y, trt)
         trt, n_trt = check_trt(trt, n_trt)
 
         wrapped_est = _WrappedUpliftEstimator(self.estimator)
@@ -79,7 +79,7 @@ class BaseSearchCV(BaseEstimator):
         # multiarray to pass additional data
         # y_stratify is used only for stratification
         Xm = MultiArray(X, array_dict={"y":y, "trt":trt}, scalar_dict={"n_trt":n_trt})
-        self.wrapped_search_.fit(Xm, y_stratify, groups=groups, **fit_params)
+        self.wrapped_search_.fit(Xm, y_stratify, **fit_params)
     def score(self, X, y, trt, n_trt=None):
         Xm = MultiArray(X, array_dict={"y":y, "trt":trt}, scalar_dict={"n_trt":n_trt})
         return self.wrapped_search_.score(Xm, y)
