@@ -94,6 +94,10 @@ def QMSE(y_true, y_pred, trt, n_trt=None, sample_weight=None,
     return _binned_measure(_per_q_qmse, _q_aggreg_mean, "QMSE",
                            y_true, y_pred, trt, n_trt=n_trt, sample_weight=sample_weight,
                            n_bins=10, allow_nans=allow_nans, joint_quantiles=joint_quantiles)
+def QMSE_j(y_true, y_pred, trt, n_trt=None, sample_weight=None,
+         n_bins=10, allow_nans=False):
+    return QMSE(y_true, y_pred, trt, n_trt=None, sample_weight=None,
+                n_bins=10, allow_nans=False, joint_quantiles=True)
 
 def _per_q_euce(y_true, y_pred, idx_t, idx_c):
     if len(idx_c) > 0:
