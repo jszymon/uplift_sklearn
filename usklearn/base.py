@@ -66,7 +66,6 @@ class UpliftClassifierMixin(_BaseUpliftMixin):
         self.classes_ = unique_labels(y)
         self.n_classes_ = len(self.classes_)
     def score(self, X, y, trt, n_trt=None, sample_weight=None):
-        raise NotImplementedError()
         return -e_sate(y, self.predict(X), trt, n_trt=self.n_trt_)
 
 
