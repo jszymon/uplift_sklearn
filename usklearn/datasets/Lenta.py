@@ -15,8 +15,8 @@ ARCHIVE = RemoteFileMetadata(
     filename="lenta_dataset.csv.gz",
     url=('https://github.com/jszymon/uplift_sklearn_data/'
          'releases/download/Lenta/lenta_dataset.csv.gz'),
-    checksum=('8f2992bc6510120c88cb6543c5fb6e5c'
-              'c7d419847a7113a8877cdbad4d671c0a'))
+    checksum=('9002bc5c52ab64c2d68f517cb3390756'
+              '87a380d7b407eef1926bd9eda5f31e5d'))
 
 def _float_w_nan(x):
     """Convert strings to floats with empty strings converted to
@@ -87,7 +87,7 @@ def fetch_Lenta(data_home=None, download_if_missing=True,
 
     # dictionaries
     treatment_values = ['control', 'test']
-    gender_values = ["F", "M", "Undefined"]
+    gender_values = ["F", "M", "Unspecified", "NA"]
     
     # attribute descriptions
     treatment_descr = [("group", treatment_values)]
