@@ -68,14 +68,8 @@ def fetch_Lenta(data_home=None, download_if_missing=True,
     dataset.data : numpy array
         Each row corresponds to the features in the dataset.
 
-    dataset.target_visit : numpy array
-        Each value is 1 if website visit occurred 0 otherwise.
-
-    dataset.target_conversion : numpy array
-        Each value is 1 if purchase occurred 0 otherwise.
-
-    dataset.target_spend : numpy array
-        Each value corresponds to the amount of money spent.
+    dataset.target_response_att : numpy array
+        Each value is 1 if store visit occurred 0 otherwise.
 
     dataset.DESCR : string
         Description of the Hillstrom dataset.
