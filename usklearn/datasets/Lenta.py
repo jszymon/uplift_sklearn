@@ -25,9 +25,9 @@ def _float_w_nan(x):
     return np.array(y, float), float
 
 def fetch_Lenta(data_home=None, download_if_missing=True,
-                    random_state=None, shuffle=False,
-                    categ_as_strings=False, return_X_y=False,
-                    as_frame=False):
+                random_state=None, shuffle=False,
+                categ_as_strings=False, return_X_y=False,
+                as_frame=False):
     """Load the Lenta dataset (uplift classification).
 
     Download it if necessary.
