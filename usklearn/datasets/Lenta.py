@@ -72,9 +72,9 @@ def fetch_Lenta(data_home=None, download_if_missing=True,
         Each value is 1 if store visit occurred 0 otherwise.
 
     dataset.DESCR : string
-        Description of the Hillstrom dataset.
+        Description of the dataset.
 
-    (data, target_visit, target_conversion, target_spend) : tuple if
+    (data, target_response_att) : tuple if
         ``return_X_y`` is True
 
     """
