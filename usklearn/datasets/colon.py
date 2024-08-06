@@ -135,6 +135,7 @@ def fetch_colon(data_home=None, download_if_missing=True,
     else:
         etype = ret.data[:, -1]
         ret.data = ret.data[etype==1,:-1]
+    ret.treatment = ret.treatment[etype==1]
     ret.target_death_time = ret.target_recurrence_time[etype==2]
     ret.target_death_status = ret.target_recurrence_status[etype==2]
     ret.target_recurrence_time = ret.target_recurrence_time[etype==1]
