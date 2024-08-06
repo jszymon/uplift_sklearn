@@ -78,12 +78,14 @@ def _read_csv(archive_path, feature_attrs, treatment_attrs, target_attrs,
 
     feature_attrs, treatment_attrs, target_attrs contain descriptions
     of resp. predictive features, treatment description, and targets.
-    Currently only a signle treatment attribute is supported.  Each
+    Currently only a single treatment attribute is supported.  Each
     description is a list whose elements are tuples describing each
     attribute.  The first element of the tuple is attribute's name,
     the second its type, third element (optional) is the name of
-    attribute in the CVS header.  If the type is a sequence, it is
-    assumed to be a list of categories.  If the type is a function, it
+    attribute in the CVS header.  If the type is a list, it is assumed
+    to be a list of categories.  If the type is a dict, it is assumed
+    that its keys are categories present in the csv file and the dict
+    is used to change category names.  If the type is a function, it
     will receive as argument a list of columns values and should
     return a transformed list and final numpy dtype.  Otherwise, type
     should be a valid numpy dtype.
@@ -106,18 +108,18 @@ def _read_csv(archive_path, feature_attrs, treatment_attrs, target_attrs,
             attr_name, attr_dtype, file_attr_name = attr_description
         attr_no = header.index(file_attr_name)
         x = Xy_columns[attr_no]
-        if isinstance(attr_dtype, list):
+        if isinstance(attr_dtype, (list, dict)):
             if categ_as_strings:
-                categs = set(attr_dtype)
-                for c in x:
-                    if c not in categs:
-                        raise RuntimeError(f"Unexpected category {c} for attribute {attr_name}")
-                maxlen = max(len(c) for c in attr_dtype)
+                if isinstance(attr_dtype, list):
+                    categs = {c:c for c in attr_dtype}
+                else: # dict
+                    categs = attr_dtype
+                maxlen = max(len(c) for c in attr_dtype.values())
                 attr_dtype = f"U{maxlen}"
             else:
                 categs = {c:i for i, c in enumerate(attr_dtype)}
-                x = [categs[c] for c in x]
                 attr_dtype = np.int32
+            x = [categs[c] for c in x]
         elif isfunction(attr_dtype):
             x, attr_dtype = attr_dtype(x)
         x = np.array(x, dtype=attr_dtype)

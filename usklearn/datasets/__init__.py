@@ -9,3 +9,4 @@ from .Lalonde import fetch_Lalonde
 from .TelecomChurn import fetch_TelecomChurn
 from .Criteo import fetch_Criteo
 from .Lenta import fetch_Lenta
+from .colon import fetch_colon
