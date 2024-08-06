@@ -34,7 +34,7 @@ def iter_quantiles(scores, trt, n_trt, n=10, joint=False):
         idx = np.argsort(b)
         counts.append(c)
         idxs.append(t_idx[t_counts[ti]:t_counts[ti+1]][idx])
-    for i in range(n):
+    for i in range(n-1, -1, -1):
         yield [idx[c[i]:c[i+1]] for idx, c in zip(idxs, counts)]
 
 def _binned_measure(per_q_func, aggreg_func, name,
