@@ -170,7 +170,12 @@ def _read_csv(archive_path, feature_attrs, treatment_attrs, target_attrs,
         fa, attr_name = parse_attr(Xy_columns, header, a_descr, categ_as_strings)
         feature_names.append(attr_name)
         columns.append(fa)
-    categ_values = {a[0]:a[1] for a in feature_attrs if isinstance(a[1], list)}
+    categ_values = dict()
+    for a in feature_attrs:
+        if isinstance(a[1], list):
+            categ_values[a[0]] = list(a[1])
+        elif isinstance(a[1], dict):
+            categ_values[a[0]] = list(a[1].values())
     #X = np.core.records.fromarrays(columns, names=feature_names)
 
     # create a Bunch
