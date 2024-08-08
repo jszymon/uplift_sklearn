@@ -11,3 +11,4 @@ from .Criteo import fetch_Criteo
 from .Lenta import fetch_Lenta
 from .colon import fetch_colon
 from .Starbucks import fetch_Starbucks
+from .Megafon import fetch_Megafon
