@@ -46,7 +46,7 @@ def uplift_curve(y_true, y_score, trt, n_trt=None, pos_label=None, sample_weight
         sample_weight = check_array(sample_weight, ensure_2d=False)
         check_consistent_length(y_true, y_score, trt, sample_weight)
         sample_weight_c = sample_weight[trt==0]
-        sample_weight_t = sample_weight[trt==t]
+        sample_weight_t = sample_weight[trt==1]
     if n_trt > 1:
         raise ValueError("uplift curve only supported for a single treatment.")
         
