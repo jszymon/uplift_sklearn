@@ -117,10 +117,12 @@ def uplift_curve_j(y_true, y_score, trt, n_trt=None, pos_label=None, sample_weig
         raise RuntimeError("Cannot construct uplift curve: no cases in control")
     if n_t == 0:
         raise RuntimeError("Cannot construct uplift curve: no treated cases")
-    sample_weight[trt==0] /= -n_c
+    y_j = np.asfarray(y_true).copy()
+    y_j[trt==0] = -y_j[trt==0]
+    sample_weight[trt==0] /= n_c
     sample_weight[trt==1] /= n_t
     
-    x, u = _cumulative_gains_curve(y_true, y_score, sample_weight)
+    x, u = _cumulative_gains_curve(y_j, y_score, sample_weight)
 
     return x, u
 
