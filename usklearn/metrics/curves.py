@@ -21,8 +21,13 @@ def _cumulative_gains_curve(y_true, y_score, sample_weight):
     threshold_idxs = np.r_[distinct_value_indices, y_true.size - 1]
     # compute gains and prepend (0,0) point at the beginning
     gains = np.r_[0, np.cumsum(y_true * weight)[threshold_idxs]]
-    threshold_idxs = np.r_[0, threshold_idxs+1]
-    return threshold_idxs, gains
+    if sample_weight is not None:
+        xs = np.r_[0, np.cumsum(weight)[threshold_idxs]]
+        xs = xs / xs[-1]
+    else:
+        xs = np.r_[0, threshold_idxs+1]
+        xs = np.asfarray(xs) / xs[-1]
+    return xs, gains
 
 def uplift_curve(y_true, y_score, trt, n_trt=None, pos_label=None, sample_weight=None):
     """Uplift curve.
@@ -42,11 +47,15 @@ def uplift_curve(y_true, y_score, trt, n_trt=None, pos_label=None, sample_weight
         check_consistent_length(y_true, y_score, trt)
         sample_weight_c = None
         sample_weight_t = None
+        n_c = (trt==0).sum()
+        n_t = (trt==1).sum()
     else:
         sample_weight = check_array(sample_weight, ensure_2d=False)
         check_consistent_length(y_true, y_score, trt, sample_weight)
         sample_weight_c = sample_weight[trt==0]
         sample_weight_t = sample_weight[trt==1]
+        n_c = sample_weight_c.sum()
+        n_t = sample_weight_t.sum()
     if n_trt > 1:
         raise ValueError("uplift curve only supported for a single treatment.")
         
@@ -58,12 +67,10 @@ def uplift_curve(y_true, y_score, trt, n_trt=None, pos_label=None, sample_weight
     y_true_c = y_true[trt==0]
     y_true_t = y_true[trt==1]
     
-    idx_c, gains_c = _cumulative_gains_curve(y_true_c, y_score_c, sample_weight_c)
-    idx_t, gains_t = _cumulative_gains_curve(y_true_t, y_score_t, sample_weight_t)
+    x_c, gains_c = _cumulative_gains_curve(y_true_c, y_score_c, sample_weight_c)
+    x_t, gains_t = _cumulative_gains_curve(y_true_t, y_score_t, sample_weight_t)
 
     # normalize
-    n_c = (trt==0).sum()
-    n_t = (trt==1).sum()
     if n_c == 0:
         raise RuntimeError("Cannot construct uplift curve: no cases in control")
     if n_t == 0:
@@ -72,14 +79,9 @@ def uplift_curve(y_true, y_score, trt, n_trt=None, pos_label=None, sample_weight
     gains_t /= n_t
 
     # interpolate and subtract curves
-    x_c = np.linspace(0, 1, n_c)
-    if n_t == n_c:
-        x = x_t = x_c
-    else:
-        x_t = np.linspace(0, 1, n_t)
-        x = np.union1d(x_c, x_t)
-    y_c = np.interp(x, idx_c/n_c, gains_c)
-    y_t = np.interp(x, idx_t/n_t, gains_t)
+    x = np.union1d(x_c, x_t)
+    y_c = np.interp(x, x_c, gains_c)
+    y_t = np.interp(x, x_t, gains_t)
     u = y_t - y_c
     return x, u
 
@@ -109,8 +111,8 @@ def uplift_curve_j(y_true, y_score, trt, n_trt=None, pos_label=None, sample_weig
         y_true = (y_true == pos_label)
 
     # normalize weights
-    n_c = (trt==0).sum()
-    n_t = (trt==1).sum()
+    n_c = sample_weight[trt==0].sum()
+    n_t = sample_weight[trt==1].sum()
     if n_c == 0:
         raise RuntimeError("Cannot construct uplift curve: no cases in control")
     if n_t == 0:
@@ -118,8 +120,7 @@ def uplift_curve_j(y_true, y_score, trt, n_trt=None, pos_label=None, sample_weig
     sample_weight[trt==0] /= -n_c
     sample_weight[trt==1] /= n_t
     
-    idx, u = _cumulative_gains_curve(y_true, y_score, sample_weight)
-    x = np.linspace(0, 1, len(idx))
+    x, u = _cumulative_gains_curve(y_true, y_score, sample_weight)
 
     return x, u
 
