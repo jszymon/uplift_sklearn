@@ -30,7 +30,7 @@ class ResponseUpliftClassifier(TreatmentUpliftClassifier):
     Ignore causal nature of the data."""
     def __init__(self, base_estimator=LogisticRegression(), reverse=False):
         super().__init__(base_estimator, reverse=reverse)
-    def fit(self, X, y, trt, n_trt=None):
+    def fit(self, X, y, trt, n_trt=None, sample_weight=None):
         n = X.shape[0]
         trt = np.ones(n, dtype=np.int32)
         n_trt = 1
@@ -44,7 +44,7 @@ class ControlUpliftClassifier(TreatmentUpliftClassifier):
     """
     def __init__(self, base_estimator=LogisticRegression(), reverse=True):
         super().__init__(base_estimator=base_estimator, reverse=reverse)
-    def fit(self, X, y, trt, n_trt=None):
+    def fit(self, X, y, trt, n_trt=None, sample_weight=None):
         mask = (trt == 0)
         n = mask.sum()
         trt = np.ones(n, dtype=np.int32)
