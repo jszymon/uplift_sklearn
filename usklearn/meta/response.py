@@ -34,7 +34,7 @@ class ResponseUpliftClassifier(TreatmentUpliftClassifier):
         n = X.shape[0]
         trt = np.ones(n, dtype=np.int32)
         n_trt = 1
-        super().fit(X, y, trt, n_trt)
+        super().fit(X, y, trt, n_trt, sample_weight=sample_weight)
 class ControlUpliftClassifier(TreatmentUpliftClassifier):
     """Predict uplift based on a control classifier.
 
@@ -49,5 +49,5 @@ class ControlUpliftClassifier(TreatmentUpliftClassifier):
         n = mask.sum()
         trt = np.ones(n, dtype=np.int32)
         n_trt = 1
-        super().fit(X[mask], y[mask], trt, n_trt)
+        super().fit(X[mask], y[mask], trt, n_trt, sample_weight=sample_weight[mask])
 
