@@ -49,5 +49,7 @@ class ControlUpliftClassifier(TreatmentUpliftClassifier):
         n = mask.sum()
         trt = np.ones(n, dtype=np.int32)
         n_trt = 1
-        super().fit(X[mask], y[mask], trt, n_trt, sample_weight=sample_weight[mask])
+        if sample_weight is not None:
+            sample_weight = sample_weight[mask]
+        super().fit(X[mask], y[mask], trt, n_trt, sample_weight=sample_weight)
 
