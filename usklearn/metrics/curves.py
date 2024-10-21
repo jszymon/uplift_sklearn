@@ -9,7 +9,7 @@ from ..utils import area_under_curve
 
 def _cumulative_gains_curve(y_true, y_score, sample_weight):
     desc_score_indices = np.argsort(y_score, kind="mergesort")[::-1]
-    #y_score = y_score[desc_score_indices]
+    y_score = y_score[desc_score_indices]
     y_true = y_true[desc_score_indices]
     if sample_weight is not None:
         weight = sample_weight[desc_score_indices]
