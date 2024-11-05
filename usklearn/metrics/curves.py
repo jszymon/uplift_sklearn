@@ -95,14 +95,15 @@ def uplift_curve_j(y_true, y_score, trt, n_trt=None, pos_label=None, sample_weig
     jointly, see Verbeke, Nyberg, Verhelst.
 
     """
-    y_true = check_array(y_true, ensure_2d=False)
+    y_true = check_array(y_true, ensure_2d=False, copy=True, dtype=float)
     y_score = check_array(y_score, ensure_2d=False)
     trt, n_trt = check_trt(trt, n_trt)
     if sample_weight is None:
         check_consistent_length(y_true, y_score, trt)
         sample_weight = np.ones_like(y_true, dtype=float)
     else:
-        sample_weight = check_array(sample_weight, ensure_2d=False)
+        sample_weight = check_array(sample_weight, ensure_2d=False,
+                                    dtype=float, copy=True)
         check_consistent_length(y_true, y_score, trt, sample_weight)
     if n_trt > 1:
         raise ValueError("uplift curve only supported for a single treatment.")
@@ -117,12 +118,11 @@ def uplift_curve_j(y_true, y_score, trt, n_trt=None, pos_label=None, sample_weig
         raise RuntimeError("Cannot construct uplift curve: no cases in control")
     if n_t == 0:
         raise RuntimeError("Cannot construct uplift curve: no treated cases")
-    y_j = np.asfarray(y_true).copy()
-    y_j[trt==0] = -y_j[trt==0]
+    y_true[trt==0] = -y_true[trt==0]
     sample_weight[trt==0] /= n_c
     sample_weight[trt==1] /= n_t
     
-    x, u = _cumulative_gains_curve(y_j, y_score, sample_weight)
+    x, u = _cumulative_gains_curve(y_true, y_score, sample_weight)
 
     return x, u
 
