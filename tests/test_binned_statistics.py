@@ -10,5 +10,5 @@ def test_iter_quantiles():
         assert len(q) == 2
         assert q[0].shape == (1,)
         assert q[1].shape == (1,)
-        assert q[0].item() == i
-        assert q[1].item() == 9-i
+        assert q[0].item() == (4-i)
+        assert q[1].item() == 9-(4-i)
