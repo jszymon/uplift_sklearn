@@ -1,6 +1,7 @@
 """Base classes for all estimators and trasformers."""
 
-from sklearn.base import BaseEstimator
+import numpy as np
+
 from sklearn.utils.multiclass import unique_labels
 
 from .metrics import e_sate
@@ -49,7 +50,7 @@ class UpliftClassifierMixin(_BaseUpliftMixin):
         try:
             range(self.n_classes_)[pos_label]
             assert pos_label >= 0
-        except:
+        except (IndexError, AssertionError):
             raise ValueError("pos_label must be an intereger between 0 and"\
                              "self.n_classes_-1.")
         y = self.predict(X)
