@@ -29,7 +29,7 @@ class _TargetTransformUpliftModelBase(UpliftMetaModelBase):
             else:
                 w_i = sample_weight[mask]
             X_i = X[mask]
-            y_i = np.asfarray(y[mask]) # allow classification problems
+            y_i = y[mask]
             trt_i = trt[mask]
             X_i, y_i, w_i = self._transform(X_i, y_i, trt_i, n_trt, w_i, y)
             yield X_i, y_i, w_i
@@ -54,7 +54,7 @@ class TargetTransformUpliftRegressor(_TargetTransformUpliftModelBase,
         nt = mask_t.sum()
         nc = mask_c.sum()
         n = nt + nc
-        y = np.asfarray(y) # allow classification problems
+        y = np.asarray(y, float) # allow classification problems
         if np.may_share_memory(y, full_y):
             y = y.copy()
         y[mask_c] *= (-n/nc)

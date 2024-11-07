@@ -28,7 +28,7 @@ if True:
         cols = []
         for c in D.feature_names:
             if c not in D.categ_values:
-                cols.append(np.asfarray(X[c]))
+                cols.append(np.asarray(X[c], float))
             else:
                 n_categs = len(D.categ_values[c])
                 x = np.eye(n_categs)[X[c]]

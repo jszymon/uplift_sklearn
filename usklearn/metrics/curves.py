@@ -26,7 +26,7 @@ def _cumulative_gains_curve(y_true, y_score, sample_weight):
         xs = xs / xs[-1]
     else:
         xs = np.r_[0, threshold_idxs+1]
-        xs = np.asfarray(xs) / xs[-1]
+        xs = xs / xs[-1]
     return xs, gains
 
 def uplift_curve(y_true, y_score, trt, n_trt=None, pos_label=None, sample_weight=None):

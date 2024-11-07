@@ -43,7 +43,7 @@ def encode_features(D):
     cols = []
     for c in D.feature_names:
         if not c.startswith("FACTOR"):
-            cols.append(np.asfarray(X[c]))
+            cols.append(np.asarray(X[c]))
         else:
             x = OneHotEncoder(sparse_output=False, drop='first').fit_transform(X[[c]])
             cols.append(x)

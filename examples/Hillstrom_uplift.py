@@ -26,6 +26,7 @@ from usklearn.meta import SLearnerUpliftRegressor
 from usklearn.meta import SLearnerUpliftClassifier
 from usklearn.meta import NestedMeanUpliftRegressor
 from usklearn.meta import DDRUpliftClassifier
+from usklearn.meta import XLearnerUpliftRegressor
 
 from usklearn.metrics import uplift_curve, uplift_curve_j
 from usklearn.model_selection import cross_validate, cross_val_score, uplift_check_cv
@@ -47,7 +48,7 @@ def encode_features(D):
     cols = []
     for c in D.feature_names:
         if c not in D.categ_values:
-            cols.append(np.asfarray(X[c]))
+            cols.append(np.asarray(X[c], float))
         else:
             n_categs = len(D.categ_values[c])
             x = np.eye(n_categs)[X[c]]
@@ -69,12 +70,12 @@ n_iter = 100
 
 base_classifier = Pipeline([("scaler", StandardScaler()),
                             ("logistic", LogisticRegression(max_iter=1000))])
-models = [#MultimodelUpliftRegressor(),
-          #MultimodelUpliftClassifier(base_estimator=base_classifier),
-          #TreatmentUpliftClassifier(base_estimator=base_classifier),
-          #ResponseUpliftClassifier(base_estimator=base_classifier, reverse=False),
-          #ControlUpliftClassifier(base_estimator=base_classifier, reverse=True),
-          #ControlUpliftClassifier(base_estimator=base_classifier, reverse=False),
+models = [MultimodelUpliftRegressor(),
+          MultimodelUpliftClassifier(base_estimator=base_classifier),
+          TreatmentUpliftClassifier(base_estimator=base_classifier),
+          ResponseUpliftClassifier(base_estimator=base_classifier, reverse=False),
+          ControlUpliftClassifier(base_estimator=base_classifier, reverse=True),
+          ControlUpliftClassifier(base_estimator=base_classifier, reverse=False),
           TargetTransformUpliftRegressor(),
           TargetTransformUpliftClassifier(base_estimator=base_classifier),
           SLearnerUpliftRegressor(),
@@ -82,13 +83,14 @@ models = [#MultimodelUpliftRegressor(),
           NestedMeanUpliftRegressor(),
           DDRUpliftClassifier(base_estimator=base_classifier),
           DDRUpliftClassifier(base_estimator=base_classifier, direction="T->C"),
+          XLearnerUpliftRegressor(),
           ]
 cv, y_stratify = uplift_check_cv(StratifiedShuffleSplit(test_size=0.3,
                                                         n_splits=n_iter,
                                                         random_state=123),
                                  y, trt, n_trt, classifier=True)
 
-colors = list("rgbkcym") + ["orange"]
+colors = list("rgbkcym") + ["orange", "lime", "grey", "brown", "pink", "gold", "purple"]
 avg_x = np.linspace(0,1,1000)
 avg_u = np.zeros((len(models), len(avg_x)))
 
