@@ -36,7 +36,7 @@ def _sha256(path):
             sha256hash.update(buffer)
     return sha256hash.hexdigest()
 
-
+# TODO: replace with sklearn.fetch_remote when it becomes available in stable
 def _fetch_remote(remote, dirname=None):
     """Helper function to download a remote dataset into path
 

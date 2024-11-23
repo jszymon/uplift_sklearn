@@ -88,8 +88,6 @@ def fetch_Criteo(data_home=None, download_if_missing=True,
                     ("target_exposure", np.int32, "exposure")]
     feature_descr = [(f"f{i}", float) for i in range(12)]
 
-#x=np.loadtxt("/home/szymon/scikit_learn_data/uplift_sklearn/Criteo/crit
-#eo-research-uplift-v2.1.csv.gz", skiprows=1, delimiter=",")
     ret = _fetch_remote_csv(ARCHIVE, "Criteo",
                             feature_attrs=feature_descr,
                             treatment_attrs=treatment_descr,
