@@ -6,8 +6,10 @@ import numpy as np
 from sklearn.utils.validation import check_array, check_consistent_length
 
 from ..utils.validation import check_trt
+from ..utils.stats import quantile
 
-def iter_quantiles(scores, trt, n_trt, n=10, joint=False):
+def iter_quantiles(scores, trt, n_trt, n=10, joint=False,
+                   sample_weight=None):
     """Iterate simultaneously over quantiles of score vectors for all
     treatments.
 
@@ -17,6 +19,8 @@ def iter_quantiles(scores, trt, n_trt, n=10, joint=False):
     If joint is True, quantiles are computed jointly for all
     treatments.
 
+    If sample_weight is not None, weighted quantiles are used.
+
     """
     # sort by treatment
     t_idx = np.argsort(trt)
@@ -24,11 +28,17 @@ def iter_quantiles(scores, trt, n_trt, n=10, joint=False):
     counts = []
     idxs = []
     if joint:
-        q = np.quantile(scores, np.linspace(0,1,n, endpoint=False))
+        q = quantile(scores, np.linspace(0,1,n, endpoint=False),
+                     weights=sample_weight)
     for ti in range(n_trt+1):
         s = scores[t_idx[t_counts[ti]:t_counts[ti+1]]]
         if not joint:
-            q = np.quantile(s, np.linspace(0,1,n, endpoint=False))
+            if sample_weight is not None:
+                w = sample_weight[t_idx[t_counts[ti]:t_counts[ti+1]]]
+            else:
+                w = None
+            q = quantile(s, np.linspace(0,1,n, endpoint=False),
+                         weights=w)
         b = np.digitize(s, q)-1
         c = np.r_[[0], np.cumsum(np.bincount(b, minlength=n))]
         idx = np.argsort(b)
