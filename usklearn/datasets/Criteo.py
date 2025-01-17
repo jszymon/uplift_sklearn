@@ -9,9 +9,16 @@ from .base import _fetch_remote_csv
 from .base import RemoteFileMetadata
 
 
+# original source
+#ARCHIVE = RemoteFileMetadata(
+#    filename="criteo-research-uplift-v2.1.csv.gz",
+#    url=('https://go.criteo.net/criteo-research-uplift-v2.1.csv.gz'),
+#    checksum=('2716e1bf0fd157a93b5bf86924d90884'
+#              '19dfbac2022c6cd90030220634f616dc'))
+# GitHub copy, seems faster
 ARCHIVE = RemoteFileMetadata(
     filename="criteo-research-uplift-v2.1.csv.gz",
-    url=('https://go.criteo.net/criteo-research-uplift-v2.1.csv.gz'),
+    url=('https://github.com/jszymon/uplift_sklearn_data/releases/download/Criteo/criteo-research-uplift-v2.1.csv.gz'),
     checksum=('2716e1bf0fd157a93b5bf86924d90884'
               '19dfbac2022c6cd90030220634f616dc'))
 
