@@ -13,3 +13,4 @@ from .colon import fetch_colon
 from .Starbucks import fetch_Starbucks
 from .Megafon import fetch_Megafon
 from .Lazada import fetch_Lazada
+from .Information import fetch_Information
