@@ -77,7 +77,7 @@ def fetch_Criteo(data_home=None, download_if_missing=True,
         Each value corresponds to the amount of money spent.
 
     dataset.DESCR : string
-        Description of the Hillstrom dataset.
+        Description of the dataset.
 
     (data, target_conversion, target_visit, target_exposure) : tuple if
         ``return_X_y`` is True
