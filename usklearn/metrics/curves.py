@@ -29,7 +29,8 @@ def _cumulative_gains_curve(y_true, y_score, sample_weight):
         xs = xs / xs[-1]
     return xs, gains
 
-def uplift_curve(y_true, y_score, trt, n_trt=None, pos_label=None, sample_weight=None):
+def uplift_curve(y_true, y_score, trt, n_trt=None, pos_label=None,
+                 sample_weight=None):
     """Uplift curve.
 
     Unless specified explicitly, y_true is assumed to be 0-1, with 1
