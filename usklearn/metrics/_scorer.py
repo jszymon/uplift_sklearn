@@ -2,6 +2,8 @@
 
 import copy
 
+from sklearn.base import is_classifier
+
 from .regression import e_sate, e_satt
 from .curves import area_under_uplift_curve, area_under_uplift_curve_j
 from .bins import QMSE, QMSE_j, EUCE, MUCE
@@ -41,6 +43,12 @@ class _UpliftPredictScorer(_BaseUpliftScorer):
             Score function applied to prediction of estimator on X.
         """
         y_pred = estimator.predict(X)
+        if is_classifier(estimator):
+            if "pos_label" in self._kwargs:
+                pos_label = self._kwargs["pos_label"]
+            else:
+                pos_label = 1
+            y_pred = y_pred[:,pos_label]
         if sample_weight is not None:
             return self._sign * self._score_func(y_true, y_pred, trt, n_trt,
                                                  sample_weight=sample_weight,
