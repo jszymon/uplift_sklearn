@@ -13,7 +13,7 @@ from sklearn.linear_model import LinearRegression
 from .base import UpliftMetaModelBase
 from ..base import UpliftRegressorMixin
 
-class XLearnerUpliftRegressor(UpliftMetaModelBase, UpliftRegressorMixin):
+class XLearnerUpliftRegressor(UpliftRegressorMixin, UpliftMetaModelBase):
     def __init__(self, base_estimator = LinearRegression()):
         super().__init__(base_estimator=base_estimator)
     def _get_model_names_list(self, X=None, y=None, trt=None):

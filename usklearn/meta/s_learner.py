@@ -47,7 +47,7 @@ class _SLearnerBase(UpliftMetaModelBase):
             pred_diffs.append(y_i - y_0)
         return pred_diffs
 
-class SLearnerUpliftRegressor(_SLearnerBase, UpliftRegressorMixin):
+class SLearnerUpliftRegressor(UpliftRegressorMixin, _SLearnerBase):
     def __init__(self, base_estimator=LinearRegression(),
                  treatment_encoding="one_hot"):
         """The S-learner meta regressor.
@@ -66,7 +66,7 @@ class SLearnerUpliftRegressor(_SLearnerBase, UpliftRegressorMixin):
             y = np.column_stack(pred_diffs)
         return y
 
-class SLearnerUpliftClassifier(_SLearnerBase, UpliftClassifierMixin):
+class SLearnerUpliftClassifier(UpliftClassifierMixin, _SLearnerBase):
     def __init__(self, base_estimator=LogisticRegression(),
                  treatment_encoding="one_hot"):
         """The S-learner meta regressor.

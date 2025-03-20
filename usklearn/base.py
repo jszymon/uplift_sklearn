@@ -2,6 +2,7 @@
 
 import numpy as np
 
+from sklearn.base import ClassifierMixin, RegressorMixin
 from sklearn.utils.multiclass import unique_labels
 
 from .metrics import e_sate
@@ -22,14 +23,14 @@ class _BaseUpliftMixin:
         of a given type."""
         self.trt_, self.n_trt_ = trt, n_trt
 
-class UpliftRegressorMixin(_BaseUpliftMixin):
+class UpliftRegressorMixin(_BaseUpliftMixin, RegressorMixin):
     _estimator_type = "regressor"
     _uplift_model = True
 
     def score(self, X, y, trt, n_trt=None, sample_weight=None):
         return -e_sate(y, self.predict(X), trt, n_trt=self.n_trt_)
 
-class UpliftClassifierMixin(_BaseUpliftMixin):
+class UpliftClassifierMixin(_BaseUpliftMixin, ClassifierMixin):
     _estimator_type = "classifier"
     _uplift_model = True
 

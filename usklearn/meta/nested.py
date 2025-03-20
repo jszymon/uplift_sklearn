@@ -12,7 +12,7 @@ from .base import UpliftMetaModelBase
 from ..base import UpliftRegressorMixin
 from ..base import UpliftClassifierMixin
 
-class NestedMeanUpliftRegressor(UpliftMetaModelBase, UpliftRegressorMixin):
+class NestedMeanUpliftRegressor(UpliftRegressorMixin, UpliftMetaModelBase):
     """Nested regression model.
 
     First builds a model on controls, then subtracts its training
@@ -60,7 +60,7 @@ class NestedMeanUpliftRegressor(UpliftMetaModelBase, UpliftRegressorMixin):
         return y
 
 
-class DDRUpliftClassifier(UpliftMetaModelBase, UpliftClassifierMixin):
+class DDRUpliftClassifier(UpliftClassifierMixin, UpliftMetaModelBase):
     """Dependent Data Representation metamodel.  It is a double model
     where control predictions are added as a variable in the treatment
     model.

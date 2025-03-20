@@ -40,8 +40,8 @@ class _TargetTransformUpliftModelBase(UpliftMetaModelBase):
         full_y is passed to allow tests to avoid overwriting."""
         raise NotImplementedError()
 
-class TargetTransformUpliftRegressor(_TargetTransformUpliftModelBase,
-                                     UpliftRegressorMixin):
+class TargetTransformUpliftRegressor(UpliftRegressorMixin,
+                                     _TargetTransformUpliftModelBase):
     def __init__(self, base_estimator=LinearRegression()):
         super().__init__(base_estimator=base_estimator)
     def _transform(self, X, y, trt, n_trt, sample_weight, full_y):
@@ -69,8 +69,8 @@ class TargetTransformUpliftRegressor(_TargetTransformUpliftModelBase,
         return y
 
 
-class TargetTransformUpliftClassifier(_TargetTransformUpliftModelBase,
-                                      UpliftClassifierMixin):
+class TargetTransformUpliftClassifier(UpliftClassifierMixin,
+                                      _TargetTransformUpliftModelBase):
     def __init__(self, base_estimator=LogisticRegression()):
         super().__init__(base_estimator=base_estimator)
     def _transform(self, X, y, trt, n_trt, sample_weight, full_y):

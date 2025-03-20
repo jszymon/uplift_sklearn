@@ -66,7 +66,7 @@ class _MultimodelUpliftModel(UpliftMetaModelBase):
         return pred_diffs
 
 
-class MultimodelUpliftRegressor(_MultimodelUpliftModel, UpliftRegressorMixin):
+class MultimodelUpliftRegressor(UpliftRegressorMixin, _MultimodelUpliftModel):
     """Multimodel uplift regressor.
 
     Build separate models for control and all treatments, subtract
@@ -92,7 +92,7 @@ class MultimodelUpliftRegressor(_MultimodelUpliftModel, UpliftRegressorMixin):
             y = np.column_stack(pred_diffs)
         return y
 
-class _MultimodelUpliftClassifierBase(_MultimodelUpliftModel, UpliftClassifierMixin):
+class _MultimodelUpliftClassifierBase(UpliftClassifierMixin, _MultimodelUpliftModel):
     def __init__(self, base_estimator, ignore_control=False):
         super().__init__(base_estimator, prediction_method="predict_proba",
                          ignore_control=ignore_control)
