@@ -70,6 +70,8 @@ n_iter = 100
 
 base_classifier = Pipeline([("scaler", StandardScaler()),
                             ("logistic", LogisticRegression(max_iter=1000))])
+#from usklearn.classifiers import MemoizedClassifier
+#base_classifier = MemoizedClassifier(base_classifier, "/tmp/cache")
 models = [MultimodelUpliftRegressor(),
           MultimodelUpliftClassifier(base_estimator=base_classifier),
           TreatmentUpliftClassifier(base_estimator=base_classifier),
