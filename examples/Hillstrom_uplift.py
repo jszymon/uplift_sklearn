@@ -11,6 +11,7 @@ import numpy as np
 from sklearn.base import is_classifier
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
@@ -27,6 +28,8 @@ from usklearn.meta import SLearnerUpliftClassifier
 from usklearn.meta import NestedMeanUpliftRegressor
 from usklearn.meta import DDRUpliftClassifier
 from usklearn.meta import XLearnerUpliftRegressor
+
+from usklearn.classifiers import MemoizedClassifier
 
 from usklearn.metrics import uplift_curve, uplift_curve_j
 from usklearn.model_selection import cross_validate, cross_val_score, uplift_check_cv
@@ -70,8 +73,10 @@ n_iter = 100
 
 base_classifier = Pipeline([("scaler", StandardScaler()),
                             ("logistic", LogisticRegression(max_iter=1000))])
-#from usklearn.classifiers import MemoizedClassifier
-#base_classifier = MemoizedClassifier(base_classifier, "/tmp/cache")
+# base_classifier = HistGradientBoostingClassifier()
+# # Memoize gradient boosting to avoid recomputing same models
+# base_classifier = MemoizedClassifier(base_classifier)
+
 models = [MultimodelUpliftRegressor(),
           MultimodelUpliftClassifier(base_estimator=base_classifier),
           TreatmentUpliftClassifier(base_estimator=base_classifier),
