@@ -42,10 +42,12 @@ class MemoizedClassifier(BaseEstimator):
         return self
     
     def __getattr__(self, name):
-        if name in ["fitted_etimator_", "do_fit_cached_"]:
+        if name in ["fitted_estimator_", "do_fit_cached_"]:
             try:
                 return self.__dict__[name]
             except:
                 raise AttributeError(f"MemoizedClassifier has no attribute {name}")
-        return getattr(self.fitted_etimator_, name)
+        if "fitted_estimator_" not in self.__dict__:
+            return getattr(self.estimator, name)
+        return getattr(self.fitted_estimator_, name)
     
