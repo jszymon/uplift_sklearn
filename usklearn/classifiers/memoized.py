@@ -36,9 +36,9 @@ class MemoizedClassifier(BaseEstimator):
         self.memory_ = check_memory(memory)
         if not hasattr(self, "do_fit_cached_"):
             self.do_fit_cached_ = self.memory_.cache(_do_fit, ignore=["estimator"])
-        self.fitted_etimator_ = self.do_fit_cached_(self.estimator,
-                                                    self.estimator.get_params(),
-                                                    *args, **kwargs)
+        self.fitted_estimator_ = self.do_fit_cached_(self.estimator,
+                                                     self.estimator.get_params(),
+                                                     *args, **kwargs)
         return self
     
     def __getattr__(self, name):
@@ -50,4 +50,4 @@ class MemoizedClassifier(BaseEstimator):
         if "fitted_estimator_" not in self.__dict__:
             return getattr(self.estimator, name)
         return getattr(self.fitted_estimator_, name)
-    
+

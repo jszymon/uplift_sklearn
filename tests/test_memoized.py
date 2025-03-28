@@ -10,5 +10,6 @@ def test_memoized_classifier(tmp_path):
     y = [1.0, 2.0, 3.0]
     mlr.fit(X, y)
     
+    lr2 = LinearRegression()
     mlr2 = MemoizedClassifier(lr, str(cache))
     mlr2.fit(X, y)
