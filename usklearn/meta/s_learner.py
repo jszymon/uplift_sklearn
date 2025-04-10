@@ -25,7 +25,7 @@ class _SLearnerBase(UpliftMetaModelBase):
         return m_names
     def _encode_treatment(self, trt):
         if self.n_trt_ == 1 or self.treatment_encoding == "int":
-            trt = trt.reshape(-1, 1)
+            trt = trt.reshape(-1, 1).astype(float)
         elif self.treatment_encoding == "one_hot":
             trt = np.eye(self.n_trt_+1)[:,1:]
         else:
@@ -38,12 +38,15 @@ class _SLearnerBase(UpliftMetaModelBase):
         yield X, y, sample_weight
     def _predict_diffs(self, X, prediction_method):
         n = X.shape[0]
+        p = X.shape[1]
         trt_0 = self._encode_treatment(np.zeros(n, dtype=int))
-        y_0 = getattr(self.models_[0][1], prediction_method)(safe_hstack([X, trt_0]))
+        X_aug = safe_hstack([X, trt_0])
+        y_0 = getattr(self.models_[0][1], prediction_method)(X_aug)
         pred_diffs = []
         for i in range(self.n_trt_):
             trt_i = self._encode_treatment(np.full(n, i+1, dtype=int))
-            y_i = getattr(self.models_[0][1], prediction_method)(safe_hstack([X, trt_i]))
+            X_aug[:,p:] = trt_i
+            y_i = getattr(self.models_[0][1], prediction_method)(X_aug)
             pred_diffs.append(y_i - y_0)
         return pred_diffs
 
