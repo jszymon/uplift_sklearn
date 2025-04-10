@@ -39,7 +39,7 @@ def iter_quantiles(scores, trt, n_trt, n=10, joint=False,
                 w = None
             q = quantile(s, np.linspace(0,1,n, endpoint=False),
                          weights=w)
-        b = np.digitize(s, q)-1
+        b = (np.digitize(s, q)-1).astype(np.min_scalar_type(n+1))
         c = np.r_[[0], np.cumsum(np.bincount(b, minlength=n))]
         idx = np.argsort(b)
         counts.append(c)
