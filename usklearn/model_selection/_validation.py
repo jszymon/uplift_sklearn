@@ -3,7 +3,8 @@
 
 import numpy as np
 
-from sklearn.base import is_classifier
+from sklearn.base import is_classifier, BaseEstimator
+from sklearn.base import MetaEstimatorMixin
 from sklearn.utils import indexable
 from sklearn.utils.metaestimators import available_if
 from sklearn.model_selection import check_cv
@@ -64,7 +65,7 @@ def _extract_main_array(X):
             X = X.main_array
         return X
 
-class _WrappedUpliftEstimator(_BaseComposition):
+class _WrappedUpliftEstimator(_BaseComposition, MetaEstimatorMixin, BaseEstimator):
     """Wrap upift estimator inside a sklearn estimator interface.
 
     If wrapped_predict is set it specifies the method to be called by
@@ -127,6 +128,8 @@ class _WrappedUpliftEstimator(_BaseComposition):
         else:
             self._set_params('base_estimator', **kwargs)
         return self
+    def get_metadata_routing(self):
+        return self.base_estimator.get_metadata_routing()
     def __getattr__(self, arg):
         """Delegate to real grid search."""
         return getattr(self.base_estimator, arg)
