@@ -1,24 +1,17 @@
-"""Copied and modified from sklearn"""
-
 """
-The :mod:`sklearn.model_selection._search` includes utilities to fine-tune the
+The :mod:`usklearn.model_selection._search` includes utilities to fine-tune the
 parameters of an estimator.
 """
-
-# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>,
-#         Gael Varoquaux <gael.varoquaux@normalesup.org>
-#         Andreas Mueller <amueller@ais.uni-bonn.de>
-#         Olivier Grisel <olivier.grisel@ensta.org>
-#         Raghav RV <rvraghav93@gmail.com>
-# License: BSD 3 clause
 
 from collections.abc import Mapping, Sequence, Iterable
 from functools import partial, reduce
 from itertools import product
+from copy import deepcopy
 import numbers
 
 import numpy as np
 
+from sklearn.utils import get_tags
 from sklearn.base import BaseEstimator, is_classifier, clone
 from sklearn.utils.validation import indexable, check_is_fitted
 from sklearn.metrics import check_scoring
@@ -46,6 +39,19 @@ class BaseSearchCV(BaseEstimator):
     @property
     def _estimator_type(self):
         return self.estimator._estimator_type
+    def __sklearn_tags__(self):
+        # Copied from sklearn 1.6.1
+        tags = super().__sklearn_tags__()
+        sub_estimator_tags = get_tags(self.estimator)
+        tags.estimator_type = sub_estimator_tags.estimator_type
+        tags.classifier_tags = deepcopy(sub_estimator_tags.classifier_tags)
+        tags.regressor_tags = deepcopy(sub_estimator_tags.regressor_tags)
+        # allows cross-validation to see 'precomputed' metrics
+        tags.input_tags.pairwise = sub_estimator_tags.input_tags.pairwise
+        tags.input_tags.sparse = sub_estimator_tags.input_tags.sparse
+        tags.array_api_support = sub_estimator_tags.array_api_support
+        return tags
+
     def __getattr__(self, arg):
         """Delegate to real grid search."""
         if "wrapped_search_" in self.__dict__:
