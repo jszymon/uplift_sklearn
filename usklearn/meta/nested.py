@@ -34,7 +34,7 @@ class NestedMeanUpliftRegressor(UpliftRegressorMixin, UpliftMetaModelBase):
         return m_names
     def _iter_training_subsets(self, X, y, trt, n_trt, sample_weight):
         c_mask = (trt==0)
-        y_c = np.asarray(y[c_mask], float) # allow classification problems
+        y_c = y[c_mask]
         if sample_weight is not None:
             yield X[c_mask], y_c, sample_weight[c_mask]
         else:

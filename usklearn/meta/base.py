@@ -53,6 +53,7 @@ class UpliftMetaModelBase(_BaseComposition):
         else:
             # full model list is provided, check length and names
             estimator_list = self.base_estimator
+            new_estimator_list = []
             for m_name, (user_m_name, model) in zip(model_names, estimator_list):
                 if m_name != user_m_name:
                     raise RuntimeError(f"Expected model name {m_name}, got {user_m_name}")
@@ -60,6 +61,8 @@ class UpliftMetaModelBase(_BaseComposition):
                     raise RuntimeError(f"Model name {m_name} starts with '_' but the model is not None")
                 if not m_name.startswith("_") and model is None:
                     raise RuntimeError(f"Model name {m_name} does not start with '_' but the model is None")
+                new_estimator_list.append((m_name, clone(model)))
+            estimator_list = new_estimator_list
         return estimator_list
     def fit(self, X, y, trt, n_trt=None, sample_weight=None):
         X, y = check_X_y(X, y, accept_sparse="csr")

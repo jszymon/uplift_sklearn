@@ -22,7 +22,6 @@ class XLearnerUpliftRegressor(UpliftRegressorMixin, UpliftMetaModelBase):
         m_names = ["model_c", "model_t", "model_c_hat", "model_t_hat"]
         return m_names
     def _iter_training_subsets(self, X, y, trt, n_trt, sample_weight):
-        y = np.asarray(y, float) # allow classification problems
         for i in range(self.n_trt_ + 1):
             mask = (trt==i)
             if sample_weight is None:
