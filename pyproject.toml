@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "uplift-sklearn"
+authors = [
+    {name = "Szymon Jaroszewicz", email = "jszymon@gmail.com"},
+    {name = "Krzysztof Rudaś", email = "krzysztof.rudas@ipipan.waw.pl"},
+]
+description = "Uplift modeling integrated with scikit-learn"
+readme = "README.md"
+requires-python = ">=3.12"
+keywords = ["uplift modeling", "CATE"]
+license = {text = "GPL-3.0"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+    "numpy",
+    "scikit-learn >= 1.6",
+]
+version = "0.1"
+dynamic = []
