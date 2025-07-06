@@ -15,3 +15,4 @@ from .Megafon import fetch_Megafon
 from .Lazada import fetch_Lazada
 from .Information import fetch_Information
 from .MarketingAB import fetch_marketing_AB
+from .Gusto import fetch_GUSTO
