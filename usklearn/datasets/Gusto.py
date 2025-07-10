@@ -32,7 +32,8 @@ ARCHIVE = RemoteFileMetadata(
               '255c4b49811d8fea2e6eac0397da8bd9'))
 
 
-def fetch_GUSTO(data_home=None,
+def fetch_GUSTO(include_location_vars=True,
+                data_home=None,
                 download_if_missing=True,
                 random_state=None, shuffle=False,
                 categ_as_strings=False, return_X_y=False,
@@ -108,6 +109,11 @@ def fetch_GUSTO(data_home=None,
 
     Parameters
     ----------
+    include_location_vars : boolean, default=True
+        Should variables describing hospital locations be
+        included. These are categorical variables with large number of
+        levels.
+    
     data_home : string, optional
         Specify another download and cache folder for the datasets. By default
         all scikit-learn data is stored in '~/scikit_learn_data' subfolders.
@@ -188,13 +194,19 @@ def fetch_GUSTO(data_home=None,
                      ('fam', np.int32),
                      ('prevcvd', np.int32),
                      ('prevcabg', np.int32),
+                     ]
+    if include_location_vars:
+        feature_descr.extend([
                      ('regl', regl_values),
                      ('grpl', grpl_values),
                      ('grps', grps_values),
-                     ]
+                     ])
 
     arch = ARCHIVE
-    ret = _fetch_remote_csv(arch, "GUSTO",
+    dataset_name = "GUSTO"
+    if not include_location_vars:
+        dataset_name += "_noloc"
+    ret = _fetch_remote_csv(arch, dataset_name,
                             feature_attrs=feature_descr,
                             treatment_attrs=treatment_descr,
                             target_attrs=target_descr,
