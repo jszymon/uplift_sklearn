@@ -112,7 +112,7 @@ def fetch_GUSTO(include_location_vars=True,
     include_location_vars : boolean, default=True
         Should variables describing hospital locations be
         included. These are categorical variables with large number of
-        levels.
+        levels.  The removed variables are regl, grpl, grps
     
     data_home : string, optional
         Specify another download and cache folder for the datasets. By default
