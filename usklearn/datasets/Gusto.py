@@ -44,7 +44,9 @@ def fetch_GUSTO(include_location_vars=True,
 
     This is a randomized clinical trial dataset of thrombolytic
     strategies for acute myocardial infractions.
-    
+
+    WARNING: the ttr attribute breaks randomization
+
     This version come from the predtools R package.  See:
     https://cran.r-project.org/web/packages/predtools/index.html for
     details.
