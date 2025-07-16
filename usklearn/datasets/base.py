@@ -147,14 +147,24 @@ def _read_csv(archive_path, feature_attrs, treatment_attrs, target_attrs,
             Xy_columns = list(zip(*Xy))
     remove(archive_path)
     
-    # parse treatment
-    if len(treatment_attrs) != 1:
-        raise RuntimeError("Only one treatment is supported")
-    trt, attr_name = parse_attr(Xy_columns, header, treatment_attrs[0], categ_as_strings)
-    if isinstance(treatment_attrs[0][1], list):
-        treatment_values = list(treatment_attrs[0][1])
-    else:
-        treatment_values = [str(i) for i in range(max(trt) + 1)]
+    # parse treatments
+    treatments = OrderedDict()
+    n_trts = OrderedDict()
+    treatment_values = OrderedDict()
+    for a_descr in treatment_attrs:
+        ta, attr_name = parse_attr(Xy_columns, header, a_descr, categ_as_strings)
+        treatments[attr_name] = ta
+        if isinstance(a_descr[1], list):
+            t_values = list(a_descr[1])
+        elif isinstance(a_descr[1], dict):
+            t_values = list(a_descr[1].values())
+        treatment_values[attr_name] = t_values
+        if a_descr[1] == float:
+            n_trt = -1 # continuous treatment
+        else:
+            n_trt = len(t_values)-1
+        n_trts[attr_name] = n_trt
+    treatment_names = list(treatments.keys())
 
     # parse targets
     targets = OrderedDict()
@@ -179,12 +189,17 @@ def _read_csv(archive_path, feature_attrs, treatment_attrs, target_attrs,
     #X = np.core.records.fromarrays(columns, names=feature_names)
 
     # create a Bunch
-    ret = Bunch(data=columns, treatment=trt,
+    ret = Bunch(data=columns,
+                treatment_names=treatment_names, n_trts=n_trts,
                 feature_names=feature_names,
                 target_names=target_names)
     for attr_name in targets:
         ret[attr_name] = targets[attr_name]
+    for attr_name in treatments:
+        ret[attr_name] = treatments[attr_name]
     ret.treatment_values=treatment_values
+    # set the first treatment as default for backwards compatibility
+    ret.treatment=treatments[treatment_names[0]]
     ret.n_trt=len(treatment_values)-1
     ret.categ_values=categ_values
     return ret
