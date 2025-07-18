@@ -204,14 +204,23 @@ def _read_csv(archive_path, feature_attrs, treatment_attrs, target_attrs,
     ret.categ_values=categ_values
     return ret
 
-def _prepare_final_data(D, shuffle, return_X_y):
+def _prepare_final_data(D, shuffle, return_X_y,
+                        record_mask=None):
+    if record_mask is not None:
+        D.data = D.data[record_mask]
+        for ta in D.target_names:
+            D[ta] = D[ta][record_mask]
+        for ta in D.treatment_names:
+            D[ta] = D[ta][record_mask]
+
     if shuffle:
         ind = np.arange(D.data.shape[0])
         rng = check_random_state(random_state)
         rng.shuffle(ind)
         D.data = D.data[ind]
-        D.treatment = D.treatment[ind]
         for ta in D.target_names:
+            D[ta] = D[ta][ind] 
+        for ta in D.treatment_names:
             D[ta] = D[ta][ind] 
 
     if return_X_y:
@@ -232,6 +241,7 @@ def _fetch_remote_csv(remote, dataset_name,
                       header=None, total_attrs=None,
                       csv_reader_args={"delimiter":",", "quotechar":'"'},
                       all_num=False,
+                      record_mask=None, remove_vars=None,
                       data_home=None, logger=None):
     if logger is None:
         logger = logging.getLogger(__name__ + "." + dataset_name)
@@ -269,6 +279,12 @@ def _fetch_remote_csv(remote, dataset_name,
         D = joblib.load(dataset_path)
 
     # change columns into a table
+    if remove_vars is not None:
+        remove_vars = set(remove_vars)
+        D.feature_names = [a for a in D.feature_names if a not in remove_vars]
+        for a in remove_vars:
+            if a in D.categ_values:
+                del D.categ_values[a]
     if as_frame:
         import pandas
         D.data = pandas.DataFrame(OrderedDict(zip(D.feature_names, D.data)))
@@ -280,5 +296,6 @@ def _fetch_remote_csv(remote, dataset_name,
         D.data = np.column_stack(D.data)
 
     # final returned data
-    ret = _prepare_final_data(D, shuffle, return_X_y)
+    ret = _prepare_final_data(D, shuffle, return_X_y,
+                              record_mask=record_mask)
     return ret

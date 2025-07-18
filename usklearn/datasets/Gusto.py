@@ -196,18 +196,16 @@ def fetch_GUSTO(include_location_vars=True,
                      ('fam', np.int32),
                      ('prevcvd', np.int32),
                      ('prevcabg', np.int32),
-                     ]
-    if include_location_vars:
-        feature_descr.extend([
                      ('regl', regl_values),
                      ('grpl', grpl_values),
                      ('grps', grps_values),
-                     ])
+                     ]
 
     arch = ARCHIVE
     dataset_name = "GUSTO"
+    remove_vars=None
     if not include_location_vars:
-        dataset_name += "_noloc"
+        remove_vars = ['regl', 'grpl', 'grps']
     ret = _fetch_remote_csv(arch, dataset_name,
                             feature_attrs=feature_descr,
                             treatment_attrs=treatment_descr,
@@ -216,7 +214,8 @@ def fetch_GUSTO(include_location_vars=True,
                             return_X_y=return_X_y, as_frame=as_frame,
                             download_if_missing=download_if_missing,
                             random_state=random_state, shuffle=shuffle,
-                            total_attrs=27, all_num=False
+                            total_attrs=27, all_num=False,
+                            remove_vars=remove_vars
                             )
     if not return_X_y:
         ret.descr = __doc__
