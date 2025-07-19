@@ -84,7 +84,7 @@ def fetch_Lenta(data_home=None, download_if_missing=True,
     gender_values = ["F", "M", "Unspecified", "NA"]
     
     # attribute descriptions
-    treatment_descr = [("group", treatment_values)]
+    treatment_descr = [("treatment", treatment_values, "group")]
     target_descr = [("target_response_att", np.int32, "response_att")]
 
     feature_descr = [('age', _float_w_nan),

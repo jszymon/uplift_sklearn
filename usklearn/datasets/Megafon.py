@@ -75,7 +75,7 @@ def fetch_Megafon(data_home=None, download_if_missing=True,
     treatment_values = ['control', 'treatment']
 
     # attribute descriptions
-    treatment_descr = [("treatment_group", treatment_values)]
+    treatment_descr = [("treatment", treatment_values, "treatment_group")]
     target_descr = [("target_conversion", np.int32, "conversion"),]
 
     feature_descr = [("X_"+str(i+1), float) for i in range(50)]

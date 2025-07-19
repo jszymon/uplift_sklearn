@@ -96,7 +96,7 @@ def fetch_Hillstrom(data_home=None, download_if_missing=True,
                     "channel": channel_values,}
 
     # attribute descriptions
-    treatment_descr = [("segment", treatment_values)]
+    treatment_descr = [("treatment", treatment_values, "segment")]
     target_descr = [("target_visit", np.int32, "visit"),
                     ("target_conversion", np.int32, "conversion"),
                     ("target_spend", float, "spend")]

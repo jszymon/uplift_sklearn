@@ -80,7 +80,7 @@ def fetch_Starbucks(data_home=None, download_if_missing=True,
     V7_values = ["1", "2"]
 
     # attribute descriptions
-    treatment_descr = [("Promotion", treatment_values)]
+    treatment_descr = [("treatment", treatment_values, "Promotion")]
     target_descr = [("target_purchase", np.int32, "purchase"),]
 
     feature_descr = [#("id", np.int32),

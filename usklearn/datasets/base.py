@@ -158,6 +158,8 @@ def _read_csv(archive_path, feature_attrs, treatment_attrs, target_attrs,
             t_values = list(a_descr[1])
         elif isinstance(a_descr[1], dict):
             t_values = list(a_descr[1].values())
+        else:
+            t_values = list(range(max(ta)+1))
         treatment_values[attr_name] = t_values
         if a_descr[1] == float:
             n_trt = -1 # continuous treatment
@@ -190,17 +192,20 @@ def _read_csv(archive_path, feature_attrs, treatment_attrs, target_attrs,
 
     # create a Bunch
     ret = Bunch(data=columns,
-                treatment_names=treatment_names, n_trts=n_trts,
+                treatment_names=treatment_names,
                 feature_names=feature_names,
                 target_names=target_names)
     for attr_name in targets:
         ret[attr_name] = targets[attr_name]
     for attr_name in treatments:
         ret[attr_name] = treatments[attr_name]
-    ret.treatment_values=treatment_values
-    # set the first treatment as default for backwards compatibility
-    ret.treatment=treatments[treatment_names[0]]
-    ret.n_trt=len(treatment_values)-1
+        ret[attr_name + "_values"] = treatment_values[attr_name]
+        if attr_name == "treatment":
+            # set n_trt for first treatment as default for backwards compatibility
+            n_trt_name = "n_trt"
+        else:
+            n_trt_name = attr_name + "_n_trt"
+        ret[n_trt_name] = n_trts[attr_name]
     ret.categ_values=categ_values
     return ret
 
@@ -278,13 +283,15 @@ def _fetch_remote_csv(remote, dataset_name,
     except NameError:
         D = joblib.load(dataset_path)
 
-    # change columns into a table
+    # remove selected variables
     if remove_vars is not None:
         remove_vars = set(remove_vars)
+        D.data = [x for a, x in zip(D.feature_names, D.data) if a not in remove_vars]
         D.feature_names = [a for a in D.feature_names if a not in remove_vars]
         for a in remove_vars:
             if a in D.categ_values:
                 del D.categ_values[a]
+    # change columns into a table
     if as_frame:
         import pandas
         D.data = pandas.DataFrame(OrderedDict(zip(D.feature_names, D.data)))

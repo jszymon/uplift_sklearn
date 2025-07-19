@@ -113,7 +113,7 @@ def fetch_Lazada(version="test", data_home=None, download_if_missing=True,
     categ_values = dict()
 
     # attribute descriptions
-    treatment_descr = [("is_treat", np.int32)]
+    treatment_descr = [("treatment", np.int32, "is_treat")]
     target_descr = [("target", np.int32, "label")]
     feature_descr = [(f"f{i}", float) for i in range(83)]
 

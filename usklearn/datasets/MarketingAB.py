@@ -14,9 +14,9 @@ ARCHIVE = RemoteFileMetadata(
               '5f61e943844b7ac8d3753a893e093d9d'))
 
 def fetch_marketing_AB(data_home=None, download_if_missing=True,
-                    random_state=None, shuffle=False,
-                    categ_as_strings=False, return_X_y=False,
-                    as_frame=False):
+                       random_state=None, shuffle=False,
+                       categ_as_strings=False, return_X_y=False,
+                       as_frame=False):
     """Load the marketing_AB dataset from Kaggle.
     Download it if necessary.
     
@@ -86,7 +86,7 @@ def fetch_marketing_AB(data_home=None, download_if_missing=True,
     most_ads_day_values = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
     # attribute descriptions
-    treatment_descr = [("test_group", treatment_values)]
+    treatment_descr = [("treatment", treatment_values, "test_group")]
     target_descr = [("target_converted", np.int32, "converted"),]
 
     feature_descr = [("user_id", float),

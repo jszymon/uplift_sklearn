@@ -92,7 +92,7 @@ def fetch_colon(data_home=None, download_if_missing=True,
                      "4":"contiguous_structures"} 
 
     # attribute descriptions
-    treatment_descr = [("rx", treatment_values)]
+    treatment_descr = [("treatment", treatment_values, "rx")]
     target_descr = [("target_recurrence_time", float, "time"),
                     ("target_recurrence_status", np.int32, "status"),]
 
