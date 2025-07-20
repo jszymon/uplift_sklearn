@@ -45,8 +45,22 @@ def fetch_IST(include_pilot=True,
     https://datashare.ed.ac.uk/handle/10283/128
     The webpage contains detailed descriptions.
 
-    This version only includes pre-randomization variables, two targets,
-    and several additional targets related to side effects.
+    This version only includes pre-randomization variables, two main
+    targets, and several additional targets related to side effects.
+
+    The two main targets are:
+    target_ID14 - death after 14 days
+    target_OCCODE - outcome after 6 month.  Original study used
+    ("dead" or "dependent") as outcome of interest
+
+    Additionally there are 9 targets describing side effects at 14
+    days: target_H14, target_ISC14, target_NK14, target_STRK14,
+    target_HTI14, target_PE14, target_DVT14, target_TRAN14,
+    target_NCB14
+
+    Variables
+    ----------
+    See https://datashare.ed.ac.uk/handle/10283/128 
     
     Changes to the original dataset
     ---------------------------
@@ -61,11 +75,6 @@ def fetch_IST(include_pilot=True,
         have been translated to English
     recoded OCCODE to descriptive values, merge two "missing status"
         categories to "NA"
-
-
-    Variables
-    ----------
-    See https://datashare.ed.ac.uk/handle/10283/128 
 
     Parameters
     ----------
