@@ -32,7 +32,7 @@ ARCHIVE = RemoteFileMetadata(
               '255c4b49811d8fea2e6eac0397da8bd9'))
 
 
-def fetch_GUSTO(include_location_vars=True,
+def fetch_GUSTO(include_location_vars=True, include_ttr=False,
                 data_home=None,
                 download_if_missing=True,
                 random_state=None, shuffle=False,
@@ -45,7 +45,9 @@ def fetch_GUSTO(include_location_vars=True,
     This is a randomized clinical trial dataset of thrombolytic
     strategies for acute myocardial infractions.
 
-    WARNING: the ttr attribute breaks randomization
+    WARNING: the ttr attribute breaks randomization, it is exluded by
+    default, can be added using include_ttr=True e.g. to get nonrandom
+    assignment which is easy to control.
 
     This version come from the predtools R package.  See:
     https://cran.r-project.org/web/packages/predtools/index.html for
@@ -203,9 +205,13 @@ def fetch_GUSTO(include_location_vars=True,
 
     arch = ARCHIVE
     dataset_name = "GUSTO"
-    remove_vars=None
+    remove_vars=[]
+    if not include_ttr:
+        remove_vars += ['ttr']
     if not include_location_vars:
-        remove_vars = ['regl', 'grpl', 'grps']
+        remove_vars += ['regl', 'grpl', 'grps']
+    if len(remove_vars) == 0:
+        remove_vars = None
     ret = _fetch_remote_csv(arch, dataset_name,
                             feature_attrs=feature_descr,
                             treatment_attrs=treatment_descr,
