@@ -8,6 +8,7 @@ import hashlib
 from urllib.request import urlretrieve
 from os.path import join, exists
 from os import remove, makedirs
+from io import StringIO
 import csv
 import gzip
 import logging
@@ -19,6 +20,8 @@ import joblib
 from sklearn.utils import Bunch
 from sklearn.utils import check_random_state
 from sklearn.datasets import get_data_home
+
+from . import _data
 
 RemoteFileMetadata = namedtuple('RemoteFileMetadata',
                                 ['filename', 'url', 'checksum'])
@@ -38,7 +41,7 @@ def _sha256(path):
 
 # TODO: replace with sklearn.fetch_remote when it becomes available in stable
 def _fetch_remote(remote, dirname=None):
-    """Helper function to download a remote dataset into path
+    """Helper function to download a remote dataset into path.
 
     Fetch a dataset pointed by remote's url, save into path using remote's
     filename and ensure its integrity based on the SHA256 Checksum of the
@@ -70,7 +73,7 @@ def _fetch_remote(remote, dirname=None):
                                                       remote.checksum))
     return file_path
 
-def _read_csv(archive_path, feature_attrs, treatment_attrs, target_attrs,
+def _read_csv(archive, feature_attrs, treatment_attrs, target_attrs,
               total_attrs=None, categ_as_strings=False, header=None,
               csv_reader_args={"delimiter":",", "quotechar":'"'},
               all_num=False):
@@ -126,11 +129,17 @@ def _read_csv(archive_path, feature_attrs, treatment_attrs, target_attrs,
         return x, attr_name
 
     Xy = []
-    if archive_path.endswith(".gz"):
-        f_open = gzip.open
+    if isinstance(archive, str):
+        if archive.endswith(".gz"):
+            f_context = gzip.open(archive, mode="rt")
+        else:
+            f_context = open(archive, mode="rt")
     else:
-        f_open = open
-    with f_open(archive_path, mode="rt") as csvfile:
+        if not hasattr(archive, "read"):
+            raise ValueError("_read_csv: archive argument "
+                             "must be a string or file-like object.")
+        f_context = archive
+    with f_context as csvfile:
         if header is None:
             delim = csv_reader_args.get("delimiter", ",")
             header = next(csvfile).strip().split(delim)
@@ -145,7 +154,8 @@ def _read_csv(archive_path, feature_attrs, treatment_attrs, target_attrs,
                 if total_attrs is not None:
                     assert len(record) == total_attrs, (record, total_attrs)
             Xy_columns = list(zip(*Xy))
-    remove(archive_path)
+    if isinstance(archive, str):
+        remove(archive)
     
     # parse treatments
     treatments = OrderedDict()
@@ -210,7 +220,8 @@ def _read_csv(archive_path, feature_attrs, treatment_attrs, target_attrs,
     return ret
 
 def _prepare_final_data(D, shuffle, return_X_y,
-                        record_mask=None):
+                        record_mask=None,
+                        random_state=None):
     if record_mask is not None:
         D.data = D.data[record_mask]
         for ta in D.target_names:
@@ -222,7 +233,7 @@ def _prepare_final_data(D, shuffle, return_X_y,
         ind = np.arange(D.data.shape[0])
         rng = check_random_state(random_state)
         rng.shuffle(ind)
-        D.data = D.data[ind]
+        D.data = D.data.iloc[ind]
         for ta in D.target_names:
             D[ta] = D[ta][ind] 
         for ta in D.treatment_names:
@@ -262,10 +273,15 @@ def _fetch_remote_csv(remote, dataset_name,
         if not exists(dataset_dir):
             makedirs(dataset_dir)
         logger.info("Downloading %s" % remote.url)
-        archive_path = _fetch_remote(remote, dirname=dataset_dir)
+        if remote.url.startswith("local:"):
+            local_name = remote.url[6:]
+            file_contents = vars(_data)[local_name]
+            archive = StringIO(file_contents)
+        else:
+            archive = _fetch_remote(remote, dirname=dataset_dir)
 
         ## read the data
-        D =_read_csv(archive_path, feature_attrs=feature_attrs,
+        D =_read_csv(archive, feature_attrs=feature_attrs,
                      treatment_attrs=treatment_attrs,
                      target_attrs=target_attrs,
                      total_attrs=total_attrs,
@@ -304,5 +320,6 @@ def _fetch_remote_csv(remote, dataset_name,
 
     # final returned data
     ret = _prepare_final_data(D, shuffle, return_X_y,
-                              record_mask=record_mask)
+                              record_mask=record_mask,
+                              random_state=random_state)
     return ret
