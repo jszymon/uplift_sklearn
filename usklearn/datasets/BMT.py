@@ -1,5 +1,5 @@
 """The BMT dataset from Melania Pintilie's book "Competing Risks, A
-Practical Perspective."
+Practical Perspective".
 
 """
 
