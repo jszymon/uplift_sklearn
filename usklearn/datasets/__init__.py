@@ -19,3 +19,4 @@ from .Gusto import fetch_GUSTO
 from .IST import fetch_IST
 from .actg320 import fetch_actg320
 from .BMT import fetch_BMT
+from .Tamoxifen import fetch_Tamoxifen
