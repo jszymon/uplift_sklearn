@@ -20,3 +20,4 @@ from .IST import fetch_IST
 from .actg320 import fetch_actg320
 from .BMT import fetch_BMT
 from .Tamoxifen import fetch_Tamoxifen
+from .pbc import fetch_pbc
