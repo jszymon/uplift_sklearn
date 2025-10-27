@@ -344,7 +344,7 @@ def learning_curve(estimator, X, y, trt, n_trt=None, groups=None,
     scorer = check_uplift_scoring(estimator, scoring=scoring)
     wrapped_scorer = _WrappedScoring(scorer)
     return _sklearn_learning_curve(wrapped_est, Xm, y_stratify, groups=groups, cv=cv,
-                                   scoring = scorer, *args, **kwargs)
+                                   scoring = wrapped_scorer, *args, **kwargs)
 
 
 
