@@ -91,6 +91,8 @@ class MultimodelUpliftRegressor(UpliftRegressorMixin, _MultimodelUpliftModel):
         else:
             y = np.column_stack(pred_diffs)
         return y
+class TLearnerUpliftRegressor(MultimodelUpliftRegressor):
+    pass
 
 class _MultimodelUpliftClassifierBase(UpliftClassifierMixin, _MultimodelUpliftModel):
     def __init__(self, base_estimator, ignore_control=False):
@@ -127,6 +129,8 @@ class MultimodelUpliftClassifier(_MultimodelUpliftClassifierBase):
     """
     def __init__(self, base_estimator=LogisticRegression()):
         super().__init__(base_estimator)
+class TLearnerUpliftClassifier(MultimodelUpliftClassifier):
+    pass
 
 class MultimodelUpliftLinearRegressor(MultimodelUpliftRegressor, LinearModel):
     """Uplift regressor with coef_ and intercept_ fields."""

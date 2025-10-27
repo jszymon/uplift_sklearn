@@ -1,8 +1,10 @@
 """Meta models: uplift models combined of classifiers/regressors."""
 
 from .multi_model import MultimodelUpliftRegressor
-from .multi_model import MultimodelUpliftLinearRegressor
 from .multi_model import MultimodelUpliftClassifier
+from .multi_model import TLearnerUpliftRegressor
+from .multi_model import TLearnerUpliftClassifier
+from .multi_model import MultimodelUpliftLinearRegressor
 from .response import TreatmentUpliftClassifier
 from .response import ResponseUpliftClassifier
 from .response import ControlUpliftClassifier
@@ -15,8 +17,10 @@ from .nested import DDRUpliftClassifier
 from .x_learner import XLearnerUpliftRegressor
 
 __all__ = ["MultimodelUpliftRegressor",
-           "MultimodelUpliftLinearRegressor",
            "MultimodelUpliftClassifier",
+           "TLearnerUpliftRegressor",
+           "TLearnerUpliftClassifier",
+           "MultimodelUpliftLinearRegressor",
            "TreatmentUpliftClassifier",
            "ResponseUpliftClassifier",
            "ControlUpliftClassifier",
