@@ -1,49 +1,22 @@
-# uplift-sklearn
-
-### Uplift modeling package based on and integrated with `scikit-learn`.
-
-### Authors: Szymon Jaroszewicz, Krzysztof Rudaś
+"""Demo from uplift-sklearn README.md"""
 
 
-## Design goals
+### necessary imports
 
-The design goal of `uplift-sklearn` is to seamlessly integrate with `scikit-learn` and follow its conventions as closely as possible.  It is possible to use model evaluation and tuning facilities from `scikit-learn` either directly or as thin wrappers provided by `uplift-sklearn`.
-
-
-## Features
-
-* A comprehensive collection of datasets for uplift modeling (we believe this is the most complete collection of randomized datasets)
-  * marketing and advertising datasets
-  * medical RTC datasets
-* Tight integration with scikit-learn: model evaluation routines can be used just as in scikit-learn
-* Meta-models: T/S/X Learners, transformed target learner
-
-## Getting started
-
-To install `uplift-sklearn` simply use
-
-``` shell
-pip install uplift-sklearn
-```
-or to get the latest version install directly from Github
-``` shell
-pip install git+https://github.com/jszymon/uplift-sklearn
-```
-
-Let us now build an uplift model on the well known Hillstrom dataset.  Begin with the necessary imports:
-
-``` Python
 import numpy as np
+np.random.seed(123)
+
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.preprocessing import StandardScaler
 from sklearn.compose import ColumnTransformer
 from sklearn.linear_model import LogisticRegression
-```
 
-Now fetch the dataset and do basic preprocessing
+from usklearn.meta import TLearnerUpliftClassifier
 
-``` Python
+
+### fetch and prepare data
+
 from usklearn.datasets import fetch_Hillstrom
 D = fetch_Hillstrom(as_frame=True)
 trt = D.treatment
@@ -56,21 +29,15 @@ mask = ~(trt == 1)
 X = X[mask]
 y = D.target_visit[mask]
 trt = (trt[mask] == 2)*1
-```
 
-By `uplift-sklearn` convention, treatments are denoted by successive integers with 0 indicating controls. Addtionally the special `n_trt` argument is passed to all methods to indicate the number of treatments (if `n_trt` is `None` it will be inferred automatically, but this may be unreliable and is discouraged).
 
-Now, we're ready to fit an uplift model (TLearner in our case)
+### fit model and draw uplift curve
 
-``` Python
+
 X_train, X_test, y_train, y_test, trt_train, trt_test = train_test_split(X, y, trt, train_size=0.7)
 m = TLearnerUpliftClassifier(base_estimator=LogisticRegression())
 m.fit(X_train, y_train, trt_train, n_trt=1)
-```
 
-and draw an uplift curve
-
-``` Python
 import matplotlib.pyplot as plt
 from usklearn.metrics import uplift_curve, area_under_uplift_curve
 
@@ -80,15 +47,10 @@ cx, cy = uplift_curve(y_test, score, trt_test, n_trt=1)
 plt.plot(cx, cy)
 plt.plot([0,1], [0,cy[-1]], "k-")
 plt.show()
-```
 
-One can use `cross_val_score` and `GridSearchCV` to easily evaluate
-models or tune their parameters, just as one does in `scikit-learn`.
-The functions provided by `uplift-sklearn` are thin wrappers of
-original `scikit-learn` functions so they behave exactly the same as
-they would for standard classifiers.
 
-``` Python
+### tune model parameters using crossvalidation
+
 # import those from usklearn instead of sklearn
 from usklearn.model_selection import cross_val_score
 from usklearn.model_selection import GridSearchCV
@@ -104,19 +66,22 @@ m_cv2 = GridSearchCV(m2,
                     {"model_c__C":[1e-1,1,1e1,1e2,1e3],
                     "model_t__C":[1e-1,1,1e1,1e2,1e3]},
                     cv=3, n_jobs=-1)
-```
-Now evaluate both models using crossvalidated Area Under Uplift Curve
 
-``` Python
 auuc_m1 = np.mean(cross_val_score(m_cv1, X, y, trt, n_trt=1, cv=5, scoring="auuc"))
 auuc_m2 = np.mean(cross_val_score(m_cv2, X, y, trt, n_trt=1, cv=5, scoring="auuc"))
 print("crossval AUUC m1:", auuc_m1)
 print("crossval AUUC m2:", auuc_m2)
-```
 
-Finally, do a permutation test and draw a learning curve.  Again the functions below are thin wrappers of original `scikit-learn` functions so they accept the same set of parameters.
+# refit and find best regularization params
+m_cv1.fit(X, y, trt, n_trt=1)
+print("best params: ", m_cv1.best_params_)
 
-``` Python
+
+
+### verify model significance using permutation test, draw learning curve
+
+# those functions are thin wrappers around original sklearn functions,
+# so they accept the same set of parameters
 from usklearn.model_selection import permutation_test_score, learning_curve
 
 score, permutation_scores, pv =\
@@ -149,10 +114,3 @@ ax1.legend()
 ax1.yaxis.tick_right()
 ax1.set_title("Learning curve")
 plt.show()
-```
-We can see that the model is significantly better than random guessing and optimal performance seems to be achieved aleady with 10000 training records.
-
-
-## Documenation
-
-TODO
