@@ -31,7 +31,6 @@ def quantile(a, q, axis=None, out=None, overwrite_input=False,
         weights = weights[ix] # sort weights
         cdf = (np.cumsum(weights) - 0.5 * weights) / np.sum(weights) # 'like' a CDF function
         q = np.interp(quantiles, cdf, data)
-        print(data, quantiles, weights, q)
         return q
     arr = np.asanyarray(a)
     return weighted_quantile(arr, q, weights)
