@@ -71,12 +71,37 @@ class TargetTransformUpliftRegressor(UpliftRegressorMixin,
 
 class TargetTransformUpliftClassifier(UpliftClassifierMixin,
                                       _TargetTransformUpliftModelBase):
-    def __init__(self, base_estimator=LogisticRegression()):
+    def __init__(self, base_estimator=LogisticRegression(),
+                 balance_treatments=True):
+        """Target transform based uplift classifier.
+
+        If balance_treatments is True sample weights are
+        introduced/modified to ensure weighted probability of both
+        treatments is 1/2.  This is necessary for correct uplift
+        estimation.  For multiple treatments this is ensured in all
+        submodels.
+
+        """
         super().__init__(base_estimator=base_estimator)
+        self.balance_treatments = balance_treatments
     def _transform(self, X, y, trt, n_trt, sample_weight, full_y):
         """Transform target for model building.
 
         full_y is passed to allow tests to avoid overwriting."""
+        if self.balance_treatments:
+            if sample_weight is None:
+                n = X.shape[0]
+                nt = trt.sum()
+            else:
+                n = sample_weight.sum()
+                nt = sample_weight[trt==1].sum()
+            nc = n-nt
+            pt = nt/n
+            pc = nc/n
+            k = pc/pt
+            if sample_weight is None:
+                sample_weight = np.ones(n)
+            sample_weight[trt==1] *= k
         if np.may_share_memory(y, full_y):
             y = y.copy()
         y[trt == 0] = 1-y[trt == 0]
